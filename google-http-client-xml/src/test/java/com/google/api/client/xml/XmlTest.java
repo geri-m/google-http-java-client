@@ -21,6 +21,8 @@ import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
@@ -44,21 +46,36 @@ public class XmlTest {
     public ValueType value;
   }
 
+  public static class AnyGenericType {
+    @Key("@attr")
+    public Object attr;
+    @Key
+    public GenericXml elem;
+  }
+
+
   public static class ValueType {
     @Key("text()")
     public Object content;
   }
 
-  private static final String XML =
+  private static final String ANY_TYPE_XML =
       "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<elem>content</elem><rep>rep1</rep><rep>rep2</rep><value>content</value></any>";
+
+
+  private static final String ANY_GENERIC_TYPE_XML =
+      "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<elem><rep>rep1</rep><rep>rep2</rep><value>content</value></elem></any>";
+
+
 
   @SuppressWarnings("cast")
   @Test
   public void testParse_anyType() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(XML));
+    parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     assertTrue(xml.attr instanceof String);
@@ -71,8 +88,32 @@ public class XmlTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(XML, out.toString());
+    assertEquals(ANY_TYPE_XML, out.toString());
   }
+
+
+
+  @SuppressWarnings("cast")
+  @Test
+  public void testParse_anyGenericType() throws Exception {
+    AnyGenericType xml = new AnyGenericType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_GENERIC_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertTrue(xml.attr instanceof String);
+    Collection<GenericXml> foo = (Collection<GenericXml>) xml.elem.get("rep");
+    assertEquals(2, foo.size());
+    // TODO (Gerald): Validate Content of GenericXML
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_GENERIC_TYPE_XML, out.toString());
+  }
+
+
 
   public static class ArrayType extends GenericXml {
     @Key
