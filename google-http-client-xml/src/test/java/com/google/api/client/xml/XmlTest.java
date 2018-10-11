@@ -14,13 +14,15 @@
 
 package com.google.api.client.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Map;
-import junit.framework.TestCase;
+import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
@@ -29,7 +31,7 @@ import org.xmlpull.v1.XmlSerializer;
  *
  * @author Yaniv Inbar
  */
-public class XmlTest extends TestCase {
+public class XmlTest {
 
   public static class AnyType {
     @Key("@attr")
@@ -52,6 +54,7 @@ public class XmlTest extends TestCase {
           + "<elem>content</elem><rep>rep1</rep><rep>rep2</rep><value>content</value></any>";
 
   @SuppressWarnings("cast")
+  @Test
   public void testParse_anyType() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
@@ -80,6 +83,7 @@ public class XmlTest extends TestCase {
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>rep1</rep><rep>rep2</rep></any>";
 
+  @Test
   public void testParse_arrayType() throws Exception {
     ArrayType xml = new ArrayType();
     XmlPullParser parser = Xml.createParser();
@@ -113,6 +117,7 @@ public class XmlTest extends TestCase {
           + "xmlns:app=\"http://www.w3.org/2007/app\">" + "<app:edited>2011-08-09T04:38:14.017Z"
           + "</app:edited></any>";
 
+  @Test
   public void testParse_nestedNs() throws Exception {
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(NESTED_NS));

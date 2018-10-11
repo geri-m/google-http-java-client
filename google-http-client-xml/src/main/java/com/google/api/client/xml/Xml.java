@@ -227,7 +227,7 @@ public class Xml {
    */
   private static boolean parseElementInternal(XmlPullParser parser,
       ArrayList<Type> context, // this is the list of objects, that the XML will be parsed into
-      Object destination, // this the most recent/root element of where the XML is going to be paresed to.
+      Object destination, // this the most recent/root element of where the XML is going to mapped
       Type valueType,
       XmlNamespaceDictionary namespaceDictionary,
       CustomizeParser customizeParser) throws IOException, XmlPullParserException {
@@ -522,7 +522,9 @@ public class Xml {
     return isStopped;
   }
 
-  private static void initForGenericXml(final XmlPullParser parser, final XmlNamespaceDictionary namespaceDictionary, final GenericXml genericXml) {
+  private static void initForGenericXml(final XmlPullParser parser,
+                                        final XmlNamespaceDictionary namespaceDictionary,
+                                        final GenericXml genericXml) {
     genericXml.namespaceDictionary = namespaceDictionary;
     String name = parser.getName();
     String namespace = parser.getNamespace();

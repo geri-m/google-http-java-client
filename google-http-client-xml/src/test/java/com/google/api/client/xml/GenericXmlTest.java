@@ -14,10 +14,12 @@
 
 package com.google.api.client.xml;
 
+import static org.junit.Assert.assertEquals;
 import com.google.api.client.util.ArrayMap;
 import java.io.StringReader;
 import java.util.Collection;
 import junit.framework.TestCase;
+import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 
 /**
@@ -25,13 +27,9 @@ import org.xmlpull.v1.XmlPullParser;
  *
  * @author Yaniv Inbar
  */
-public class GenericXmlTest extends TestCase {
+public class GenericXmlTest{
 
   public GenericXmlTest() {
-  }
-
-  public GenericXmlTest(String name) {
-    super(name);
   }
 
   private static final String XML =
@@ -43,6 +41,7 @@ public class GenericXmlTest extends TestCase {
           + "<entry gd:etag=\"def\"><title>Two</title></entry></feed>";
 
   @SuppressWarnings("unchecked")
+  @Test
   public void testParse() throws Exception {
     GenericXml xml = new GenericXml();
     XmlPullParser parser = Xml.createParser();

@@ -1,15 +1,19 @@
 package com.google.api.client.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
-import junit.framework.TestCase;
 
-public class XmlEnumTest extends TestCase {
+
+public class XmlEnumTest {
 
   public enum AnyEnum {
     @Value ENUM_1,
@@ -58,6 +62,7 @@ public class XmlEnumTest extends TestCase {
 
 
   @SuppressWarnings("cast")
+  @Test
   public void testParse_anyType() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
@@ -82,6 +87,7 @@ public class XmlEnumTest extends TestCase {
     assertEquals(XML, out.toString());
   }
 
+  @Test
   public void testParse_enumElementType() throws Exception {
     XmlEnumTest.AnyTypeEnumElementOnly xml = new XmlEnumTest.AnyTypeEnumElementOnly();
     XmlPullParser parser = Xml.createParser();
@@ -98,6 +104,7 @@ public class XmlEnumTest extends TestCase {
     assertEquals(XML_ENUM_ELEMENT_ONLY, out.toString());
   }
 
+  @Test
   public void testParse_enumAttributeType() throws Exception {
     XmlEnumTest.AnyTypeEnumAttributeOnly xml = new XmlEnumTest.AnyTypeEnumAttributeOnly();
     XmlPullParser parser = Xml.createParser();
@@ -114,6 +121,7 @@ public class XmlEnumTest extends TestCase {
     assertEquals(XML_ENUM_ATTRIBUTE_ONLY, out.toString());
   }
 
+  @Test
   public void testParse_enumElementTypeIncorrect() throws Exception {
     XmlEnumTest.AnyTypeEnumElementOnly xml = new XmlEnumTest.AnyTypeEnumElementOnly();
     XmlPullParser parser = Xml.createParser();

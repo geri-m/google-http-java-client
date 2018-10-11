@@ -14,20 +14,23 @@
 
 package com.google.api.client.xml;
 
+import static org.junit.Assert.assertNull;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.xml.atom.Atom;
 import java.util.List;
 import junit.framework.TestCase;
 import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Tests {@link Atom}.
  *
  * @author Yaniv Inbar
  */
-public class AtomTest extends TestCase {
+public class AtomTest {
 
   @SuppressWarnings("unchecked")
+  @Test
   public void testSetSlugHeader() {
     HttpHeaders headers = new HttpHeaders();
     assertNull(headers.get("Slug"));
