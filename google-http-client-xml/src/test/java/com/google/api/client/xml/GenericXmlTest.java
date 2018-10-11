@@ -17,7 +17,9 @@ package com.google.api.client.xml;
 import static org.junit.Assert.assertEquals;
 import com.google.api.client.util.ArrayMap;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
@@ -53,7 +55,16 @@ public class GenericXmlTest{
     assertEquals(expected, namespaceDictionary.getAliasToUriMap());
     assertEquals("feed", xml.name);
     Collection<GenericXml> foo = (Collection<GenericXml>) xml.get("entry");
-    // TODO(yanivi): check contents of foo
     assertEquals(2, foo.size());
+    ArrayMap<String, String> singleElementOne =ArrayMap.of("text()", "One");
+    List<ArrayMap<String, String>> testOne = new ArrayList<ArrayMap<String, String>>();
+    testOne.add(singleElementOne);
+    assertEquals("abc", foo.toArray(new ArrayMap[]{})[0].get("@gd:etag"));
+    assertEquals(testOne, foo.toArray(new ArrayMap[]{})[0].get("title"));
+    ArrayMap<String, String> singleElementTwo =ArrayMap.of("text()", "Two");
+    List<ArrayMap<String, String>> testTwo = new ArrayList<ArrayMap<String, String>>();
+    testTwo.add(singleElementTwo);
+    assertEquals("def", foo.toArray(new ArrayMap[]{})[1].get("@gd:etag"));
+    assertEquals(testTwo, foo.toArray(new ArrayMap[]{})[1].get("title"));
   }
 }
