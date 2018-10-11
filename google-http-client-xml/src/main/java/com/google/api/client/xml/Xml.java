@@ -226,34 +226,39 @@ public class Xml {
    * {@link #parseElement(XmlPullParser, Object, XmlNamespaceDictionary, CustomizeParser)} .
    */
   private static boolean parseElementInternal(XmlPullParser parser,
-      ArrayList<Type> context,
-      Object destination,
+      ArrayList<Type> context, // this is the list of objects, that the XML will be parsed into
+      Object destination, // this the most recent/root element of where the XML is going to be paresed to.
       Type valueType,
       XmlNamespaceDictionary namespaceDictionary,
       CustomizeParser customizeParser) throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
+
+    // if the destination is a GenericXML then we are going the set the generic XML.
     GenericXml genericXml = destination instanceof GenericXml ? (GenericXml) destination : null;
     @SuppressWarnings("unchecked")
+
+    // if the desitnation is GenericXML and the destination is a Map, create a desination Map.
     Map<String, Object> destinationMap =
         genericXml == null && destination instanceof Map<?, ?> ? Map.class.cast(destination) : null;
 
     // if there is a class, we want to put the data into, create the class Info for this
     ClassInfo classInfo =
         destinationMap != null || destination == null ? null : ClassInfo.of(destination.getClass());
+
+    // if we are the very beginning of the document, get the next element/event
     if (parser.getEventType() == XmlPullParser.START_DOCUMENT) {
       parser.next();
     }
+
+
     parseNamespacesForElement(parser, namespaceDictionary);
-    // generic XML
+    // if we have a generic XML, set the namespace
     if (genericXml != null) {
-      genericXml.namespaceDictionary = namespaceDictionary;
-      String name = parser.getName();
-      String namespace = parser.getNamespace();
-      String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
-      genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
+      initForGenericXml(parser, namespaceDictionary, genericXml);
     }
-    // attributes
+
+    // if we have a dedicated destination
     if (destination != null) {
       int attributeCount = parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {
@@ -515,6 +520,14 @@ public class Xml {
     } // end -- main: while (true)
     arrayValueMap.setValues();
     return isStopped;
+  }
+
+  private static void initForGenericXml(final XmlPullParser parser, final XmlNamespaceDictionary namespaceDictionary, final GenericXml genericXml) {
+    genericXml.namespaceDictionary = namespaceDictionary;
+    String name = parser.getName();
+    String namespace = parser.getNamespace();
+    String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
+    genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
   }
 
   private static String getFieldName(
