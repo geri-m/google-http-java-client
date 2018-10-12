@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
@@ -15,7 +16,7 @@ import com.google.api.client.util.Value;
 
 public class XmlEnumTest {
 
-  public enum AnyEnum {
+    public enum AnyEnum {
     @Value ENUM_1,
     @Value ENUM_2
   }
@@ -150,7 +151,35 @@ public class XmlEnumTest {
     } catch (final IllegalArgumentException e){
       assertEquals("given enum name ENUM_3 not part of enumeration", e.getMessage());
     }
-
   }
+
+  private static final String COLLECTION_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"\">"
+          + "<rep>ENUM_1</rep><rep>ENUM_2</rep></any>";
+
+  public static class CollectionType extends GenericXml {
+    @Key
+    public Collection<AnyEnum> rep;
+  }
+
+  @Test
+  public void testParse_collectionTypeWithEnum() throws Exception {
+    CollectionType xml = new CollectionType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.size());
+    assertEquals(AnyEnum.ENUM_1, xml.rep.toArray(new AnyEnum[]{})[0]);
+    assertEquals(AnyEnum.ENUM_2, xml.rep.toArray(new AnyEnum[]{})[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE, out.toString());
+  }
+
 
 }

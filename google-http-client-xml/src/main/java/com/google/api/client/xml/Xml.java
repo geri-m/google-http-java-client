@@ -467,7 +467,7 @@ public class Xml {
                   context.remove(contextSize);
                 }
               } else {
-                // never null.
+                // never null. NOT YET Covered!
                 elementValue = Types.newInstance(rawArrayComponentType);
                 int contextSize = context.size();
                 context.add(fieldType);
@@ -488,7 +488,7 @@ public class Xml {
                   arrayValueMap.put(field, rawArrayComponentType, elementValue);
                 }
               } else {
-                // collection: add new element to collection
+                // collection: add new element to collection  NOT YET Covered!
                 @SuppressWarnings("unchecked")
                 Collection<Object> collectionValue = (Collection<Object>) (field == null
                     ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));

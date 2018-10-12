@@ -22,6 +22,7 @@ import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
@@ -44,6 +45,7 @@ public class XmlTest {
     @Key
     public ValueType value;
   }
+
 
   public static class ValueType {
     @Key("text()")
@@ -85,7 +87,7 @@ public class XmlTest {
   }
 
   @Test
-  public void testParse_anyTypWithCustomParser() throws Exception {
+  public void testParse_anyTypeWithCustomParser() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
@@ -102,6 +104,31 @@ public class XmlTest {
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(ANY_TYPE_XML, out.toString());
+  }
+
+
+  public static class AnyTypePrimitive {
+    @Key("text()")
+    public int value;
+  }
+
+  private static final String ANY_TYPE_XML_PRIMITIVE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">1</any>";
+
+  @Test
+  public void testParse_anyTypePrimitive() throws Exception {
+    AnyTypePrimitive xml = new AnyTypePrimitive();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
+    assertEquals(1, xml.value);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_TYPE_XML_PRIMITIVE, out.toString());
   }
 
   public static class ArrayType extends GenericXml {
@@ -187,7 +214,7 @@ public class XmlTest {
 
   private static final String NESTED_NS_SERIALIZED =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\" "
-          + "xmlns:app=\"http://www.w3.org/2007/app\">" + "<app:edited>2011-08-09T04:38:14.017Z"
+          + "xmlns:app=\"http://www.w3.org/2007/app\"><app:edited>2011-08-09T04:38:14.017Z"
           + "</app:edited></any>";
 
   @Test
@@ -205,4 +232,33 @@ public class XmlTest {
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(NESTED_NS_SERIALIZED, out.toString());
   }
+
+  private static final String COLLECTION_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>rep1</rep><rep>rep2</rep></any>";
+
+  public static class CollectionType extends GenericXml {
+    @Key
+    public Collection<String> rep;
+  }
+
+  @Test
+  public void testParse_collectionType() throws Exception {
+    CollectionType xml = new CollectionType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.size());
+    assertEquals("rep1", xml.rep.toArray(new String[]{})[0]);
+    assertEquals("rep2", xml.rep.toArray(new String[]{})[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE, out.toString());
+  }
+
 }
