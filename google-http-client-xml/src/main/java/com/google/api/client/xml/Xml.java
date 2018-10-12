@@ -342,6 +342,7 @@ public class Xml {
             boolean ignore = field == null && destinationMap == null && genericXml == null;
             // is the field an Enum
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
+            // Primitive or Enum
             if (ignore || Data.isPrimitive(fieldType) || isEnum) {
               int level = 1;
               while (level != 0) {
@@ -371,6 +372,7 @@ public class Xml {
                     break;
                 }
               }
+              // Handle as Map or Nested Class
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
               // store the element as a map
@@ -427,6 +429,7 @@ public class Xml {
                 }
                 list.add(mapValue);
               }
+              // Handle as Array
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               // TODO(yanivi): some duplicate code here; isolate into reusable methods
               FieldInfo fieldInfo = FieldInfo.of(field);
@@ -442,6 +445,8 @@ public class Xml {
                 subFieldClass = Types.getRawClass((ParameterizedType) subFieldType);
               }
               boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
+
+              // Array mit Primitive oder Enum Type
               if (Data.isPrimitive(subFieldType) || isSubEnum) {
                 // this could return null, but is not covered by a test!
                 elementValue = parseTextContentForElement(parser, context, false, subFieldType);

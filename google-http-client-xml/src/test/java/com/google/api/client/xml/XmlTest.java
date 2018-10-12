@@ -173,10 +173,12 @@ public class XmlTest {
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>1</rep><rep>2</rep></any>";
 
+
   @Test
   public void testParse_arrayTypeWithPrimitive() throws Exception {
     assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
   }
+
 
   private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
@@ -205,6 +207,48 @@ public class XmlTest {
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     return out.toString();
+  }
+
+  public static class ArrayTypeWithClassType extends GenericXml {
+    @Key
+    public AnyType[] rep;
+  }
+
+  private static final String ARRAY_TYPE_WITH_CLASS_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">" +
+          "<rep><elem>content1</elem><rep>rep10</rep><rep>rep11</rep><value>content</value></rep>" +
+          "<rep><elem>content2</elem><rep>rep20</rep><rep>rep21</rep><value>content</value></rep>" +
+          "<rep><elem>content3</elem><rep>rep30</rep><rep>rep31</rep><value>content</value></rep>" +
+          "</any>";
+
+  @Test
+  public void testParse_arrayTypeWithClassType() throws Exception {
+    ArrayTypeWithClassType xml = new ArrayTypeWithClassType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ARRAY_TYPE_WITH_CLASS_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertTrue(xml.rep instanceof AnyType[]);
+    AnyType[] rep = xml.rep;
+    assertNotNull(rep);
+    assertEquals(3, rep.length);
+    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep[0].elem;
+    assertEquals(1, elem0.size());
+    assertEquals("content1", elem0.get(0).get("text()"));
+    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep[1].elem;
+    assertEquals(1, elem1.size());
+    assertEquals("content2", elem1.get(0).get("text()"));
+    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep[2].elem;
+    assertEquals(1, elem2.size());
+    assertEquals("content3", elem2.get(0).get("text()"));
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ARRAY_TYPE_WITH_CLASS_TYPE, out.toString());
   }
 
   private static final String NESTED_NS =
