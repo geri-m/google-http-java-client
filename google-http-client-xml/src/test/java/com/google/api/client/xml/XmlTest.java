@@ -15,6 +15,7 @@
 package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
@@ -80,9 +81,18 @@ public class XmlTest {
     public Map<String, String>[] rep;
   }
 
+  public static class ArrayTypeWithPrimitive extends GenericXml {
+    @Key
+    public int[] rep;
+  }
+
   private static final String ARRAY_TYPE =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>rep1</rep><rep>rep2</rep></any>";
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1</rep><rep>2</rep></any>";
 
   @Test
   public void testParse_arrayType() throws Exception {
@@ -106,6 +116,27 @@ public class XmlTest {
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(ARRAY_TYPE, out.toString());
+  }
+
+  @Test
+  public void testParse_arrayTypeWithPrimitive() throws Exception {
+    ArrayTypeWithPrimitive xml = new ArrayTypeWithPrimitive();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ARRAY_TYPE_WITH_PRIMITIVE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    int[] rep = xml.rep;
+    assertNotNull(rep);
+    assertEquals(2, rep.length);
+    assertEquals(1, rep[0]);
+    assertEquals(2, rep[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, out.toString());
   }
 
   private static final String NESTED_NS =

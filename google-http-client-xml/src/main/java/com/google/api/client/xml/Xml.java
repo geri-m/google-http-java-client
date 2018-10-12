@@ -315,6 +315,7 @@ public class Xml {
             break main;
           }
           if (destination == null) {
+            // we ignore the result, as we can't map it to anything. we parse for sanity?
             parseTextContentForElement(parser, context, true, null);
           } else {
             // element
@@ -382,7 +383,7 @@ public class Xml {
               subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
               isStopped = parseElementInternal(parser,
                   context,
-                  mapValue,
+                  mapValue, // destination; never null
                   subValueType,
                   namespaceDictionary,
                   customizeParser);
@@ -441,9 +442,11 @@ public class Xml {
               }
               boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
               if (Data.isPrimitive(subFieldType) || isSubEnum) {
+                // this could return null, but is not covered by a test!
                 elementValue = parseTextContentForElement(parser, context, false, subFieldType);
               } else if (subFieldType == null || subFieldClass != null
                   && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
+                // returns never null
                 elementValue = Data.newMapInstance(subFieldClass);
                 int contextSize = context.size();
                 if (subFieldType != null) {
@@ -455,7 +458,7 @@ public class Xml {
                 subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
                 isStopped = parseElementInternal(parser,
                     context,
-                    elementValue,
+                    elementValue, // destination, only null if parseTextContentForElement returns null
                     subValueType,
                     namespaceDictionary,
                     customizeParser);
@@ -463,12 +466,14 @@ public class Xml {
                   context.remove(contextSize);
                 }
               } else {
+                // never null.
                 elementValue = Types.newInstance(rawArrayComponentType);
                 int contextSize = context.size();
                 context.add(fieldType);
+                // Not Yet Covered by Tests
                 isStopped = parseElementInternal(parser,
                     context,
-                    elementValue,
+                    elementValue, // destination; never null.
                     null,
                     namespaceDictionary,
                     customizeParser);
@@ -504,7 +509,7 @@ public class Xml {
               context.add(fieldType);
               isStopped = parseElementInternal(parser,
                   context,
-                  value,
+                  value, // destination; never null.
                   null,
                   namespaceDictionary,
                   customizeParser);
