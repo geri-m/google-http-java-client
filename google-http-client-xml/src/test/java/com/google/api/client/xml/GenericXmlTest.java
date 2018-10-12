@@ -15,14 +15,19 @@
 package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
+import com.google.api.client.util.Key;
+import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlSerializer;
 
 /**
  * Tests {@link GenericXml}.
@@ -41,6 +46,53 @@ public class GenericXmlTest{
           + "xmlns:atom=\"http://www.w3.org/2005/Atom\" "
           + "gd:etag=\"abc\"><atom:title>One</atom:title></atom:entry>"
           + "<entry gd:etag=\"def\"><title>Two</title></entry></feed>";
+
+
+  public static class AnyGenericType {
+    @Key("@attr")
+    public Object attr;
+    @Key
+    public GenericXml elem;
+  }
+
+
+  private static final String ANY_GENERIC_TYPE_XML =
+      "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<elem><rep attr=\"param1\">rep1</rep><rep attr=\"param2\">rep2</rep><value>content</value></elem></any>";
+
+  @SuppressWarnings("cast")
+  @Test
+  public void testParse_anyGenericType() throws Exception {
+    AnyGenericType xml = new AnyGenericType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_GENERIC_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertTrue(xml.attr instanceof String);
+    Collection<GenericXml> repList = (Collection<GenericXml>) xml.elem.get("rep");
+    assertEquals(2, repList.size());
+    Collection<GenericXml> repValue = (Collection<GenericXml>) xml.elem.get("value");
+    assertEquals(1, repValue.size());
+    // 1st rep element
+    assertEquals("@attr", ((Map.Entry)repList.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[0]).getKey());
+    assertEquals("param1", ((Map.Entry)repList.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[0]).getValue());
+    assertEquals("text()", ((Map.Entry)repList.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[1]).getKey());
+    assertEquals("rep1", ((Map.Entry)repList.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[1]).getValue());
+    // 2nd rep element
+    assertEquals("@attr", ((Map.Entry)repList.toArray(new ArrayMap[]{})[1].entrySet().toArray(new Map.Entry[]{})[0]).getKey());
+    assertEquals("param2", ((Map.Entry)repList.toArray(new ArrayMap[]{})[1].entrySet().toArray(new Map.Entry[]{})[0]).getValue());
+    assertEquals("text()", ((Map.Entry)repList.toArray(new ArrayMap[]{})[1].entrySet().toArray(new Map.Entry[]{})[1]).getKey());
+    assertEquals("rep2", ((Map.Entry)repList.toArray(new ArrayMap[]{})[1].entrySet().toArray(new Map.Entry[]{})[1]).getValue());
+    // value element
+    assertEquals("text()", ((Map.Entry)repValue.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[0]).getKey());
+    assertEquals("content", ((Map.Entry)repValue.toArray(new ArrayMap[]{})[0].entrySet().toArray(new Map.Entry[]{})[0]).getValue());
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_GENERIC_TYPE_XML, out.toString());
+  }
 
   @SuppressWarnings("unchecked")
   @Test

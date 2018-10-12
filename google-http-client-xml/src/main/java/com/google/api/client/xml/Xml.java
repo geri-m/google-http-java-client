@@ -263,6 +263,7 @@ public class Xml {
       int attributeCount = parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {
         // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
+        // You can't. Attribute names are unique per element. (?)
         String attributeName = parser.getAttributeName(i);
         String attributeNamespace = parser.getAttributeNamespace(i);
         String attributeAlias = attributeNamespace.length() == 0
