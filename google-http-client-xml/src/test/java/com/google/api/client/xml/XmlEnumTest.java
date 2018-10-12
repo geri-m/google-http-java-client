@@ -54,12 +54,18 @@ public class XmlEnumTest {
       "<?xml version=\"1.0\"?><any anyEnum=\"ENUM_1\" attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<anotherEnum>ENUM_2</anotherEnum><elem>content</elem><rep>rep1</rep><rep>rep2</rep><value>ENUM_1</value></any>";
 
-  private static final String XML_ENUM_ELEMENT_ONLY =   "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_2</elementEnum></any>";
+  private static final String XML_ENUM_ELEMENT_ONLY =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_2</elementEnum></any>";
 
-  private static final String XML_ENUM_ATTRIBUTE_ONLY =   "<?xml version=\"1.0\"?><any attributeEnum=\"ENUM_1\" xmlns=\"http://www.w3.org/2005/Atom\" />";
+  private static final String XML_ENUM_ATTRIBUTE_ONLY =
+      "<?xml version=\"1.0\"?><any attributeEnum=\"ENUM_1\" xmlns=\"http://www.w3.org/2005/Atom\" />";
 
-  private static final String XML_ENUM_INCORRECT =   "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_3</elementEnum></any>";
+  private static final String XML_ENUM_INCORRECT =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_3</elementEnum></any>";
 
+
+  private static final String XML_ENUM_ELEMENT_ONLY_NESTED =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_2<nested>something</nested></elementEnum></any>";
 
   @SuppressWarnings("cast")
   @Test
@@ -89,9 +95,18 @@ public class XmlEnumTest {
 
   @Test
   public void testParse_enumElementType() throws Exception {
+    assertEquals(XML_ENUM_ELEMENT_ONLY, testStandardXml(XML_ENUM_ELEMENT_ONLY));
+  }
+
+  @Test
+  public void testParse_enumElementTypeWithNestedElement() throws Exception {
+    assertEquals(XML_ENUM_ELEMENT_ONLY, testStandardXml(XML_ENUM_ELEMENT_ONLY_NESTED));
+  }
+
+  private String testStandardXml(final String xmlString) throws Exception {
     XmlEnumTest.AnyTypeEnumElementOnly xml = new XmlEnumTest.AnyTypeEnumElementOnly();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(XML_ENUM_ELEMENT_ONLY));
+    parser.setInput(new StringReader(xmlString));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     assertTrue(xml.elementEnum instanceof XmlEnumTest.AnyEnum);
@@ -101,7 +116,8 @@ public class XmlEnumTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(XML_ENUM_ELEMENT_ONLY, out.toString());
+    return out.toString();
+
   }
 
   @Test

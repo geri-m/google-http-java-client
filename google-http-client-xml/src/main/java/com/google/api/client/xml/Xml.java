@@ -238,7 +238,7 @@ public class Xml {
     GenericXml genericXml = destination instanceof GenericXml ? (GenericXml) destination : null;
     @SuppressWarnings("unchecked")
 
-    // if the desitnation is GenericXML and the destination is a Map, create a desination Map.
+    // if the destination is GenericXML and the destination is a Map, create a desination Map.
     Map<String, Object> destinationMap =
         genericXml == null && destination instanceof Map<?, ?> ? Map.class.cast(destination) : null;
 
@@ -314,6 +314,7 @@ public class Xml {
             isStopped = true;
             break main;
           }
+          // not sure how the case looks like, when this happens.
           if (destination == null) {
             // we ignore the result, as we can't map it to anything. we parse for sanity?
             parseTextContentForElement(parser, context, true, null);
@@ -458,7 +459,7 @@ public class Xml {
                 subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
                 isStopped = parseElementInternal(parser,
                     context,
-                    elementValue, // destination, only null if parseTextContentForElement returns null
+                    elementValue, // destination, never null!
                     subValueType,
                     namespaceDictionary,
                     customizeParser);

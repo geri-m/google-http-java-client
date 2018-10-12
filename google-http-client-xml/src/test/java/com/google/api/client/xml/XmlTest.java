@@ -16,7 +16,6 @@ package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
@@ -76,23 +75,43 @@ public class XmlTest {
     assertEquals(ANY_TYPE_XML, out.toString());
   }
 
+  // this test only ensures, that there is no exception during paring with a NULL destination
+  @Test
+  public void testParse_anyTypeWithNullDestination() throws Exception {
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, null, namespaceDictionary, null);
+  }
+
+  @Test
+  public void testParse_anyTypWithCustomParser() throws Exception {
+    AnyType xml = new AnyType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
+    assertTrue(xml.attr instanceof String);
+    assertTrue(xml.elem.toString(), xml.elem instanceof ArrayList<?>);
+    assertTrue(xml.rep.toString(), xml.rep instanceof ArrayList<?>);
+    assertTrue(xml.value instanceof ValueType);
+    assertTrue(xml.value.content instanceof String);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_TYPE_XML, out.toString());
+  }
+
   public static class ArrayType extends GenericXml {
     @Key
     public Map<String, String>[] rep;
   }
 
-  public static class ArrayTypeWithPrimitive extends GenericXml {
-    @Key
-    public int[] rep;
-  }
-
   private static final String ARRAY_TYPE =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>rep1</rep><rep>rep2</rep></any>";
-
-  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>1</rep><rep>2</rep></any>";
 
   @Test
   public void testParse_arrayType() throws Exception {
@@ -118,11 +137,33 @@ public class XmlTest {
     assertEquals(ARRAY_TYPE, out.toString());
   }
 
+  public static class ArrayTypeWithPrimitive extends GenericXml {
+    @Key
+    public int[] rep;
+  }
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1</rep><rep>2</rep></any>";
+
   @Test
   public void testParse_arrayTypeWithPrimitive() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
+  }
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1<nested>something</nested></rep><rep>2</rep></any>";
+
+  @Test
+  public void testParse_arrayTypeWithPrimitiveWithNestedElement() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED));
+  }
+
+  private String testStandardXml(final String xmlString) throws Exception {
     ArrayTypeWithPrimitive xml = new ArrayTypeWithPrimitive();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ARRAY_TYPE_WITH_PRIMITIVE));
+    parser.setInput(new StringReader(xmlString));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
@@ -136,7 +177,7 @@ public class XmlTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, out.toString());
+    return out.toString();
   }
 
   private static final String NESTED_NS =
