@@ -217,7 +217,7 @@ public class Xml {
     if (destination != null) {
       context.add(destination.getClass());
     }
-    parseElementInternal(parser, context, destination, null, namespaceDictionary, customizeParser);
+    parseElementInternal(parser, context, destination, null, namespaceDictionary, customizeParser,0);
   }
 
   /**
@@ -230,9 +230,11 @@ public class Xml {
       Object destination, // this the most recent/root element of where the XML is going to mapped
       Type valueType,
       XmlNamespaceDictionary namespaceDictionary,
-      CustomizeParser customizeParser) throws IOException, XmlPullParserException {
+      CustomizeParser customizeParser,
+      Integer globalLevel) throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
+    System.out.println("EntryLevel: " + globalLevel);
 
     // if the destination is a GenericXML then we are going the set the generic XML.
     GenericXml genericXml = destination instanceof GenericXml ? (GenericXml) destination : null;
@@ -252,32 +254,35 @@ public class Xml {
     }
 
 
-    parseNamespacesForElement(parser, namespaceDictionary);
-    // if we have a generic XML, set the namespace
-    if (genericXml != null) {
-      initForGenericXml(parser, namespaceDictionary, genericXml);
-    }
+    if (parser.getEventType() == XmlPullParser.START_TAG) {
+      System.out.println("_START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
+      parseNamespacesForElement(parser, namespaceDictionary);
+      // if we have a generic XML, set the namespace
+      if (genericXml != null) {
+        initForGenericXml(parser, namespaceDictionary, genericXml);
+      }
 
-    // if we have a dedicated destination
-    if (destination != null) {
-      int attributeCount = parser.getAttributeCount();
-      for (int i = 0; i < attributeCount; i++) {
-        // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
-        // You can't. Attribute names are unique per element. (?)
-        String attributeName = parser.getAttributeName(i);
-        String attributeNamespace = parser.getAttributeNamespace(i);
-        String attributeAlias = attributeNamespace.length() == 0
-            ? "" : namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
-        Field field = classInfo == null ? null : classInfo.getField(fieldName);
-        parseAttributeOrTextContent(parser.getAttributeValue(i),
-            field,
-            valueType,
-            context,
-            destination,
-            genericXml,
-            destinationMap,
-            fieldName);
+      // if we have a dedicated destination
+      if (destination != null) {
+        int attributeCount = parser.getAttributeCount();
+        for (int i = 0; i < attributeCount; i++) {
+          // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
+          // You can't. Attribute names are unique per element. (?)
+          String attributeName = parser.getAttributeName(i);
+          String attributeNamespace = parser.getAttributeNamespace(i);
+          String attributeAlias = attributeNamespace.length() == 0
+              ? "" : namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+          String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+          Field fieldInit = classInfo == null ? null : classInfo.getField(fieldName);
+          parseAttributeOrTextContent(parser.getAttributeValue(i),
+              fieldInit,
+              valueType,
+              context,
+              destination,
+              genericXml,
+              destinationMap,
+              fieldName);
+        }
       }
     }
     Field field;
@@ -288,11 +293,15 @@ public class Xml {
       int event = parser.next();
       boolean breakFromMain = false;
       switch (event) {
+        case XmlPullParser.START_DOCUMENT:
+
+
         case XmlPullParser.END_DOCUMENT:
           isStopped = true;
           breakFromMain = true;
           break;
         case XmlPullParser.END_TAG:
+          System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
           isStopped = customizeParser != null
               && customizeParser.stopAfterEndTag(parser.getNamespace(), parser.getName());
           // we never end up in END_DOCUMENT; as we break the main already here.
@@ -313,6 +322,8 @@ public class Xml {
           }
           break;
         case XmlPullParser.START_TAG:
+          System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
+
           if (customizeParser != null
               && customizeParser.stopBeforeStartTag(parser.getNamespace(), parser.getName())) {
             isStopped = true;
@@ -321,7 +332,7 @@ public class Xml {
           // not sure how the case looks like, when this happens.
           if (destination == null) {
             // we ignore the result, as we can't map it to anything. we parse for sanity?
-            parseTextContentForElement(parser, context, true, null);
+            parseTextContentForElement(parser, context, true, null, globalLevel);
           } else {
             // element
             parseNamespacesForElement(parser, namespaceDictionary);
@@ -357,9 +368,11 @@ public class Xml {
                     // This break is somehow hard to deal with; at least for now.
                     break main;
                   case XmlPullParser.START_TAG:
+                    System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
                     level++;
                     break;
                   case XmlPullParser.END_TAG:
+                    System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
                     level--;
                     break;
                   case XmlPullParser.TEXT:
@@ -382,15 +395,15 @@ public class Xml {
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
               isStopped = mapAsClassOrObjectType(parser, context, destination, namespaceDictionary,
-                  customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
+                  customizeParser, destinationMap, field, fieldName, fieldType, fieldClass, globalLevel);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               isStopped = mapAsArrayOrCollection(parser, context, destination, namespaceDictionary,
                   customizeParser, genericXml, destinationMap, field, arrayValueMap, isStopped,
-                  fieldName, fieldType, isArray);
+                  fieldName, fieldType, isArray, globalLevel);
             } else {
               isStopped = mapArrayWithClassType(parser, context, destination, namespaceDictionary,
                   customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
-                  fieldClass);
+                  fieldClass, globalLevel);
             }
           }
           if (isStopped || parser.getEventType() == XmlPullParser.END_DOCUMENT) {
@@ -412,6 +425,12 @@ public class Xml {
     if (isStopped) {
       throw new RuntimeException("Return Value is TRUE. Really?");
     }
+
+    if(parser.getEventType() == XmlPullParser.END_DOCUMENT){
+      System.out.println("Okay, now we are done");
+    }
+    System.out.println("ExitLevel: " + globalLevel);
+
     return isStopped;
   }
 
@@ -422,7 +441,8 @@ public class Xml {
                                                 final CustomizeParser customizeParser,
                                                 final Map<String, Object> destinationMap,
                                                 final Field field, final String fieldName,
-                                                final Type fieldType, final Class<?> fieldClass)
+                                                final Type fieldType, final Class<?> fieldClass,
+                                                final Integer globalLevel)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
@@ -438,7 +458,7 @@ public class Xml {
         mapValue, // destination; never null
         subValueType,
         namespaceDictionary,
-        customizeParser);
+        customizeParser, globalLevel);
     if (fieldType != null) {
       context.remove(contextSize);
     }
@@ -492,7 +512,8 @@ public class Xml {
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
                                                 boolean isStopped, final String fieldName,
-                                                final Type fieldType, final boolean isArray)
+                                                final Type fieldType, final boolean isArray,
+                                                final Integer globalLevel)
       throws XmlPullParserException, IOException {
     // TODO(yanivi): some duplicate code here; isolate into reusable methods
     FieldInfo fieldInfo = FieldInfo.of(field);
@@ -512,7 +533,7 @@ public class Xml {
     // Array mit Primitive oder Enum Type
     if (Data.isPrimitive(subFieldType) || isSubEnum) {
       // this could return null, but is not covered by a test!
-      elementValue = parseTextContentForElement(parser, context, false, subFieldType);
+      elementValue = parseTextContentForElement(parser, context, false, subFieldType, globalLevel);
     } else if (subFieldType == null || subFieldClass != null
         && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
       // returns never null
@@ -530,7 +551,8 @@ public class Xml {
           elementValue, // destination, never null!
           subValueType,
           namespaceDictionary,
-          customizeParser);
+          customizeParser,
+          globalLevel);
       if (subFieldType != null) {
         context.remove(contextSize);
       }
@@ -545,7 +567,8 @@ public class Xml {
           elementValue, // destination; never null.
           null,
           namespaceDictionary,
-          customizeParser);
+          customizeParser,
+          globalLevel);
       context.remove(contextSize);
     }
     if (isArray) {
@@ -589,7 +612,8 @@ public class Xml {
                                                final GenericXml genericXml,
                                                final Map<String, Object> destinationMap,
                                                final Field field, final String fieldName,
-                                               final Type fieldType, final Class<?> fieldClass)
+                                               final Type fieldType, final Class<?> fieldClass,
+                                               final Integer globalLevel)
       throws IOException, XmlPullParserException {
 
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
@@ -601,7 +625,8 @@ public class Xml {
         value, // destination; never null.
         null,
         namespaceDictionary,
-        customizeParser);
+        customizeParser,
+        globalLevel);
     context.remove(contextSize);
     setValue(value, field, destination, genericXml, destinationMap, fieldName);
     return isStopped;
@@ -633,7 +658,7 @@ public class Xml {
   }
 
   private static Object parseTextContentForElement(
-      XmlPullParser parser, List<Type> context, boolean ignoreTextContent, Type textContentType)
+      XmlPullParser parser, List<Type> context, boolean ignoreTextContent, Type textContentType, Integer globalLevel)
       throws XmlPullParserException, IOException {
     Object result = null;
     int level = 1;
@@ -643,9 +668,11 @@ public class Xml {
           level = 0;
           break;
         case XmlPullParser.START_TAG:
+          System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
           level++;
           break;
         case XmlPullParser.END_TAG:
+          System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
           level--;
           break;
         case XmlPullParser.TEXT:
