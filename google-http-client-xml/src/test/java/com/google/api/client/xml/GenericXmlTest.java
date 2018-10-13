@@ -15,6 +15,7 @@
 package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
@@ -119,4 +120,76 @@ public class GenericXmlTest{
     assertEquals("def", foo.toArray(new ArrayMap[]{})[1].get("@gd:etag"));
     assertEquals(testTwo, foo.toArray(new ArrayMap[]{})[1].get("title"));
   }
+
+  private static final String COLLECTION_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>rep1</rep><rep>rep2</rep></any>";
+
+  public static class CollectionTypeAsGenericXml extends GenericXml {
+    @Key
+    public Collection<String> rep;
+  }
+
+  @Test
+  public void testParse_collectionTypeAsGenericXml() throws Exception {
+    CollectionTypeAsGenericXml xml = new CollectionTypeAsGenericXml();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.size());
+    assertEquals("rep1", xml.rep.toArray(new String[]{})[0]);
+    assertEquals("rep2", xml.rep.toArray(new String[]{})[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE, out.toString());
+  }
+
+
+  public static class ArrayTypeWithClassTypeAsGenericXml extends GenericXml {
+    @Key
+    public XmlTest.AnyType[] rep;
+  }
+
+  private static final String ARRAY_TYPE_WITH_CLASS_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">" +
+          "<rep><elem>content1</elem><rep>rep10</rep><rep>rep11</rep><value>content</value></rep>" +
+          "<rep><elem>content2</elem><rep>rep20</rep><rep>rep21</rep><value>content</value></rep>" +
+          "<rep><elem>content3</elem><rep>rep30</rep><rep>rep31</rep><value>content</value></rep>" +
+          "</any>";
+
+  @Test
+  public void testParse_arrayTypeWithClassTypeAsGenericXml() throws Exception {
+    ArrayTypeWithClassTypeAsGenericXml xml = new ArrayTypeWithClassTypeAsGenericXml();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ARRAY_TYPE_WITH_CLASS_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertTrue(xml.rep instanceof XmlTest.AnyType[]);
+    XmlTest.AnyType[] rep = xml.rep;
+    assertNotNull(rep);
+    assertEquals(3, rep.length);
+    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep[0].elem;
+    assertEquals(1, elem0.size());
+    assertEquals("content1", elem0.get(0).get("text()"));
+    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep[1].elem;
+    assertEquals(1, elem1.size());
+    assertEquals("content2", elem1.get(0).get("text()"));
+    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep[2].elem;
+    assertEquals(1, elem2.size());
+    assertEquals("content3", elem2.get(0).get("text()"));
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ARRAY_TYPE_WITH_CLASS_TYPE, out.toString());
+  }
+
 }

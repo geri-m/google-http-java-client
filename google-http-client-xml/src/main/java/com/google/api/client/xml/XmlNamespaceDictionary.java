@@ -257,7 +257,7 @@ public final class XmlNamespaceDictionary {
             aliases.add(alias);
           }
           Class<?> valueClass = value.getClass();
-          if (!isAttribute && !Data.isPrimitive(valueClass)  && !valueClass.isEnum() ) {
+          if (!isAttribute && !Data.isPrimitive(valueClass) && !valueClass.isEnum()) {
             if (value instanceof Iterable<?> || valueClass.isArray()) {
               for (Object subValue : Types.iterableOf(value)) {
                 computeAliases(subValue, aliases);

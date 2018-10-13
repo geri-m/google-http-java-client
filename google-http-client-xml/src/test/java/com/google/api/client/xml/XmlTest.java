@@ -209,7 +209,7 @@ public class XmlTest {
     return out.toString();
   }
 
-  public static class ArrayTypeWithClassType extends GenericXml {
+  public static class ArrayTypeWithClassType {
     @Key
     public AnyType[] rep;
   }
@@ -281,7 +281,7 @@ public class XmlTest {
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>rep1</rep><rep>rep2</rep></any>";
 
-  public static class CollectionType extends GenericXml {
+  public static class CollectionType {
     @Key
     public Collection<String> rep;
   }
@@ -303,6 +303,29 @@ public class XmlTest {
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(COLLECTION_TYPE, out.toString());
+  }
+
+  public static class SimpleType {
+    @Key("text()")
+    public String value;
+  }
+
+  private static final String SIMPLE_XML = "<any>test</any>";
+
+  @Test
+  public void testParse_simpleType() throws Exception {
+    SimpleType xml = new SimpleType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
   }
 
 }

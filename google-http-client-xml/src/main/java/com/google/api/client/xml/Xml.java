@@ -238,7 +238,7 @@ public class Xml {
     GenericXml genericXml = destination instanceof GenericXml ? (GenericXml) destination : null;
     @SuppressWarnings("unchecked")
 
-    // if the destination is GenericXML and the destination is a Map, create a desination Map.
+    // if the destination is GenericXML and the destination is a Map, create a destination Map.
     Map<String, Object> destinationMap =
         genericXml == null && destination instanceof Map<?, ?> ? Map.class.cast(destination) : null;
 
@@ -286,14 +286,18 @@ public class Xml {
     // TODO(yanivi): support Void type as "ignore" element/attribute
     main: while (true) {
       int event = parser.next();
+      boolean breakFromMain = false;
       switch (event) {
         case XmlPullParser.END_DOCUMENT:
           isStopped = true;
-          break main;
+          breakFromMain = true;
+          break;
         case XmlPullParser.END_TAG:
           isStopped = customizeParser != null
               && customizeParser.stopAfterEndTag(parser.getNamespace(), parser.getName());
-          break main;
+          // we never end up in END_DOCUMENT; as we break the main already here.
+          breakFromMain = true;
+          break;
         case XmlPullParser.TEXT:
           // parse text content
           if (destination != null) {
@@ -312,7 +316,7 @@ public class Xml {
           if (customizeParser != null
               && customizeParser.stopBeforeStartTag(parser.getNamespace(), parser.getName())) {
             isStopped = true;
-            break main;
+            breakFromMain = true;
           }
           // not sure how the case looks like, when this happens.
           if (destination == null) {
@@ -347,8 +351,10 @@ public class Xml {
               int level = 1;
               while (level != 0) {
                 switch (parser.next()) {
+                  // Not sure, how this case y
                   case XmlPullParser.END_DOCUMENT:
                     isStopped = true;
+                    // This break is somehow hard to deal with; at least for now.
                     break main;
                   case XmlPullParser.START_TAG:
                     level++;
@@ -369,168 +375,235 @@ public class Xml {
                     }
                     break;
                   default:
-                    break;
+                    throw new RuntimeException("Default in Object Switch");
                 }
               }
               // Handle as Map or Nested Class
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
-              // store the element as a map
-              Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
-              int contextSize = context.size();
-              if (fieldType != null) {
-                context.add(fieldType);
-              }
-              Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
-                  ? Types.getMapValueParameter(fieldType) : null;
-              subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
-              isStopped = parseElementInternal(parser,
-                  context,
-                  mapValue, // destination; never null
-                  subValueType,
-                  namespaceDictionary,
-                  customizeParser);
-              if (fieldType != null) {
-                context.remove(contextSize);
-              }
-              if (destinationMap != null) {
-                // map but not GenericXml: store as ArrayList of elements
-                @SuppressWarnings("unchecked")
-                Collection<Object> list = (Collection<Object>) destinationMap.get(fieldName);
-                if (list == null) {
-                  list = new ArrayList<Object>(1);
-                  destinationMap.put(fieldName, list);
-                }
-                list.add(mapValue);
-              } else if (field != null) {
-                // not a map: store in field value
-                FieldInfo fieldInfo = FieldInfo.of(field);
-                if (fieldClass == Object.class) {
-                  // field is an Object: store as ArrayList of element maps
-                  @SuppressWarnings("unchecked")
-                  Collection<Object> list = (Collection<Object>) fieldInfo.getValue(destination);
-                  if (list == null) {
-                    list = new ArrayList<Object>(1);
-                    fieldInfo.setValue(destination, list);
-                  }
-                  list.add(mapValue);
-                } else {
-                  // field is a Map: store as a single element map
-                  fieldInfo.setValue(destination, mapValue);
-                }
-              } else {
-                // GenericXml: store as ArrayList of elements
-                GenericXml atom = (GenericXml) destination;
-                @SuppressWarnings("unchecked")
-                Collection<Object> list = (Collection<Object>) atom.get(fieldName);
-                if (list == null) {
-                  list = new ArrayList<Object>(1);
-                  atom.set(fieldName, list);
-                }
-                list.add(mapValue);
-              }
-              // Handle as Array
+              isStopped = mapAsClassOrObjectType(parser, context, destination, namespaceDictionary,
+                  customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
-              // TODO(yanivi): some duplicate code here; isolate into reusable methods
-              FieldInfo fieldInfo = FieldInfo.of(field);
-              Object elementValue = null;
-              Type subFieldType = isArray
-                  ? Types.getArrayComponentType(fieldType) : Types.getIterableParameter(fieldType);
-              Class<?> rawArrayComponentType =
-                  Types.getRawArrayComponentType(context, subFieldType);
-              subFieldType = Data.resolveWildcardTypeOrTypeVariable(context, subFieldType);
-              Class<?> subFieldClass =
-                  subFieldType instanceof Class<?> ? (Class<?>) subFieldType : null;
-              if (subFieldType instanceof ParameterizedType) {
-                subFieldClass = Types.getRawClass((ParameterizedType) subFieldType);
-              }
-              boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
-
-              // Array mit Primitive oder Enum Type
-              if (Data.isPrimitive(subFieldType) || isSubEnum) {
-                // this could return null, but is not covered by a test!
-                elementValue = parseTextContentForElement(parser, context, false, subFieldType);
-              } else if (subFieldType == null || subFieldClass != null
-                  && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
-                // returns never null
-                elementValue = Data.newMapInstance(subFieldClass);
-                int contextSize = context.size();
-                if (subFieldType != null) {
-                  context.add(subFieldType);
-                }
-                Type subValueType = subFieldType != null
-                    && Map.class.isAssignableFrom(subFieldClass) ? Types.getMapValueParameter(
-                    subFieldType) : null;
-                subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
-                isStopped = parseElementInternal(parser,
-                    context,
-                    elementValue, // destination, never null!
-                    subValueType,
-                    namespaceDictionary,
-                    customizeParser);
-                if (subFieldType != null) {
-                  context.remove(contextSize);
-                }
-              } else {
-                // never null. NOT YET Covered!
-                elementValue = Types.newInstance(rawArrayComponentType);
-                int contextSize = context.size();
-                context.add(fieldType);
-                // Not Yet Covered by Tests
-                isStopped = parseElementInternal(parser,
-                    context,
-                    elementValue, // destination; never null.
-                    null,
-                    namespaceDictionary,
-                    customizeParser);
-                context.remove(contextSize);
-              }
-              if (isArray) {
-                // array field: add new element to array value map
-                if (field == null) {
-                  arrayValueMap.put(fieldName, rawArrayComponentType, elementValue);
-                } else {
-                  arrayValueMap.put(field, rawArrayComponentType, elementValue);
-                }
-              } else {
-                // collection: add new element to collection  NOT YET Covered!
-                @SuppressWarnings("unchecked")
-                Collection<Object> collectionValue = (Collection<Object>) (field == null
-                    ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
-                if (collectionValue == null) {
-                  collectionValue = Data.newCollectionInstance(fieldType);
-                  setValue(collectionValue,
-                      field,
-                      destination,
-                      genericXml,
-                      destinationMap,
-                      fieldName);
-                }
-                collectionValue.add(elementValue);
-              }
+              isStopped = mapAsArrayOrCollection(parser, context, destination, namespaceDictionary,
+                  customizeParser, genericXml, destinationMap, field, arrayValueMap, isStopped,
+                  fieldName, fieldType, isArray);
             } else {
-              // not an array/iterable or a map, but we do have a field
-              Object value = Types.newInstance(fieldClass);
-              int contextSize = context.size();
-              context.add(fieldType);
-              isStopped = parseElementInternal(parser,
-                  context,
-                  value, // destination; never null.
-                  null,
-                  namespaceDictionary,
-                  customizeParser);
-              context.remove(contextSize);
-              setValue(value, field, destination, genericXml, destinationMap, fieldName);
+              isStopped = mapArrayWithClassType(parser, context, destination, namespaceDictionary,
+                  customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
+                  fieldClass);
             }
           }
           if (isStopped || parser.getEventType() == XmlPullParser.END_DOCUMENT) {
             isStopped = true;
-            break main;
+            breakFromMain = true;
           }
           break; // break Switch;
+        default:
+          throw new RuntimeException("Default in Main Switch");
       } // end -- switch (event)
+
+      if (breakFromMain) {
+        break;
+      }
+
     } // end -- main: while (true)
     arrayValueMap.setValues();
+
+    if (isStopped) {
+      throw new RuntimeException("Return Value is TRUE. Really?");
+    }
+    return isStopped;
+  }
+
+  private static boolean mapAsClassOrObjectType(final XmlPullParser parser,
+                                                final ArrayList<Type> context,
+                                                final Object destination,
+                                                final XmlNamespaceDictionary namespaceDictionary,
+                                                final CustomizeParser customizeParser,
+                                                final Map<String, Object> destinationMap,
+                                                final Field field, final String fieldName,
+                                                final Type fieldType, final Class<?> fieldClass)
+      throws IOException, XmlPullParserException {
+    final boolean isStopped; // store the element as a map
+    Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
+    int contextSize = context.size();
+    if (fieldType != null) {
+      context.add(fieldType);
+    }
+    Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
+        ? Types.getMapValueParameter(fieldType) : null;
+    subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
+    isStopped = parseElementInternal(parser,
+        context,
+        mapValue, // destination; never null
+        subValueType,
+        namespaceDictionary,
+        customizeParser);
+    if (fieldType != null) {
+      context.remove(contextSize);
+    }
+    if (destinationMap != null) {
+      // map but not GenericXml: store as ArrayList of elements
+      @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>)
+          destinationMap.get(fieldName);
+      if (list == null) {
+        list = new ArrayList<Object>(1);
+        destinationMap.put(fieldName, list);
+      }
+      list.add(mapValue);
+    } else if (field != null) {
+      // not a map: store in field value
+      FieldInfo fieldInfo = FieldInfo.of(field);
+      if (fieldClass == Object.class) {
+        // field is an Object: store as ArrayList of element maps
+        @SuppressWarnings("unchecked")
+        Collection<Object> list = (Collection<Object>) fieldInfo.getValue(destination);
+        if (list == null) {
+          list = new ArrayList<Object>(1);
+          fieldInfo.setValue(destination, list);
+        }
+        list.add(mapValue);
+      } else {
+        // field is a Map: store as a single element map
+        fieldInfo.setValue(destination, mapValue);
+      }
+    } else {
+      // GenericXml: store as ArrayList of elements
+      GenericXml atom = (GenericXml) destination;
+      @SuppressWarnings("unchecked")
+      Collection<Object> list = (Collection<Object>) atom.get(fieldName);
+      if (list == null) {
+        list = new ArrayList<Object>(1);
+        atom.set(fieldName, list);
+      }
+      list.add(mapValue);
+    }
+    // Handle as Array
+    return isStopped;
+  }
+
+  private static boolean mapAsArrayOrCollection(final XmlPullParser parser,
+                                                final ArrayList<Type> context,
+                                                final Object destination,
+                                                final XmlNamespaceDictionary namespaceDictionary,
+                                                final CustomizeParser customizeParser,
+                                                final GenericXml genericXml,
+                                                final Map<String, Object> destinationMap,
+                                                final Field field,
+                                                final ArrayValueMap arrayValueMap,
+                                                boolean isStopped, final String fieldName,
+                                                final Type fieldType, final boolean isArray)
+      throws XmlPullParserException, IOException {
+    // TODO(yanivi): some duplicate code here; isolate into reusable methods
+    FieldInfo fieldInfo = FieldInfo.of(field);
+    Object elementValue = null;
+    Type subFieldType = isArray
+        ? Types.getArrayComponentType(fieldType) : Types.getIterableParameter(fieldType);
+    Class<?> rawArrayComponentType =
+        Types.getRawArrayComponentType(context, subFieldType);
+    subFieldType = Data.resolveWildcardTypeOrTypeVariable(context, subFieldType);
+    Class<?> subFieldClass =
+        subFieldType instanceof Class<?> ? (Class<?>) subFieldType : null;
+    if (subFieldType instanceof ParameterizedType) {
+      subFieldClass = Types.getRawClass((ParameterizedType) subFieldType);
+    }
+    boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
+
+    // Array mit Primitive oder Enum Type
+    if (Data.isPrimitive(subFieldType) || isSubEnum) {
+      // this could return null, but is not covered by a test!
+      elementValue = parseTextContentForElement(parser, context, false, subFieldType);
+    } else if (subFieldType == null || subFieldClass != null
+        && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
+      // returns never null
+      elementValue = Data.newMapInstance(subFieldClass);
+      int contextSize = context.size();
+      if (subFieldType != null) {
+        context.add(subFieldType);
+      }
+      Type subValueType = subFieldType != null
+          && Map.class.isAssignableFrom(subFieldClass) ? Types.getMapValueParameter(
+          subFieldType) : null;
+      subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
+      isStopped = parseElementInternal(parser,
+          context,
+          elementValue, // destination, never null!
+          subValueType,
+          namespaceDictionary,
+          customizeParser);
+      if (subFieldType != null) {
+        context.remove(contextSize);
+      }
+    } else {
+      // never null.
+      elementValue = Types.newInstance(rawArrayComponentType);
+      int contextSize = context.size();
+      context.add(fieldType);
+      // Not Yet Covered by Tests
+      isStopped = parseElementInternal(parser,
+          context,
+          elementValue, // destination; never null.
+          null,
+          namespaceDictionary,
+          customizeParser);
+      context.remove(contextSize);
+    }
+    if (isArray) {
+      // array field: add new element to array value map
+      if (field == null) {
+        arrayValueMap.put(fieldName, rawArrayComponentType, elementValue);
+      } else {
+        arrayValueMap.put(field, rawArrayComponentType, elementValue);
+      }
+    } else {
+      mapToCollection(destination, genericXml, destinationMap, field, fieldName, fieldType,
+          fieldInfo, elementValue);
+    }
+    return isStopped;
+  }
+
+  private static void mapToCollection(final Object destination, final GenericXml genericXml,
+                                      final Map<String, Object> destinationMap, final Field field,
+                                      final String fieldName, final Type fieldType,
+                                      final FieldInfo fieldInfo, final Object elementValue) {
+    // collection: add new element to collection  NOT YET Covered!
+    @SuppressWarnings("unchecked") Collection<Object> collectionValue = (Collection<Object>)
+        (field == null ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
+    if (collectionValue == null) {
+      collectionValue = Data.newCollectionInstance(fieldType);
+      setValue(collectionValue,
+          field,
+          destination,
+          genericXml,
+          destinationMap,
+          fieldName);
+    }
+    collectionValue.add(elementValue);
+  }
+
+  private static boolean mapArrayWithClassType(final XmlPullParser parser,
+                                               final ArrayList<Type> context,
+                                               final Object destination,
+                                               final XmlNamespaceDictionary namespaceDictionary,
+                                               final CustomizeParser customizeParser,
+                                               final GenericXml genericXml,
+                                               final Map<String, Object> destinationMap,
+                                               final Field field, final String fieldName,
+                                               final Type fieldType, final Class<?> fieldClass)
+      throws IOException, XmlPullParserException {
+
+    final boolean isStopped; // not an array/iterable or a map, but we do have a field
+    Object value = Types.newInstance(fieldClass);
+    int contextSize = context.size();
+    context.add(fieldType);
+    isStopped = parseElementInternal(parser,
+        context,
+        value, // destination; never null.
+        null,
+        namespaceDictionary,
+        customizeParser);
+    context.remove(contextSize);
+    setValue(value, field, destination, genericXml, destinationMap, fieldName);
     return isStopped;
   }
 
