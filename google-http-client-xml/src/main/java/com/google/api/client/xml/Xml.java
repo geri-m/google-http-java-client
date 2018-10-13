@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -217,7 +218,8 @@ public class Xml {
     if (destination != null) {
       context.add(destination.getClass());
     }
-    parseElementInternal(parser, context, destination, null, namespaceDictionary, customizeParser,0);
+    final AtomicInteger level = new AtomicInteger(0);
+    parseElementInternal(parser, context, destination, null, namespaceDictionary, customizeParser,level);
   }
 
   /**
@@ -231,7 +233,7 @@ public class Xml {
       Type valueType,
       XmlNamespaceDictionary namespaceDictionary,
       CustomizeParser customizeParser,
-      Integer globalLevel) throws IOException, XmlPullParserException {
+      AtomicInteger globalLevel) throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
     System.out.println("EntryLevel: " + globalLevel);
@@ -251,11 +253,13 @@ public class Xml {
     // if we are the very beginning of the document, get the next element/event
     if (parser.getEventType() == XmlPullParser.START_DOCUMENT) {
       parser.next();
+      // Only if the START_TAG was triggered by this 'next()' call, increment the level. (else the Start Tag was only passed over.)
+      if (parser.getEventType() == XmlPullParser.START_TAG){
+        System.out.println("_START_TAG form " + globalLevel + " to " +  globalLevel.incrementAndGet() + " name: "+  parser.getName());
+      }
     }
 
-
     if (parser.getEventType() == XmlPullParser.START_TAG) {
-      System.out.println("_START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
       parseNamespacesForElement(parser, namespaceDictionary);
       // if we have a generic XML, set the namespace
       if (genericXml != null) {
@@ -293,15 +297,12 @@ public class Xml {
       int event = parser.next();
       boolean breakFromMain = false;
       switch (event) {
-        case XmlPullParser.START_DOCUMENT:
-
-
         case XmlPullParser.END_DOCUMENT:
           isStopped = true;
           breakFromMain = true;
           break;
         case XmlPullParser.END_TAG:
-          System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
+          System.out.println("END_TAG form " + globalLevel + " to " +  globalLevel.decrementAndGet() + " name: "+  parser.getName());
           isStopped = customizeParser != null
               && customizeParser.stopAfterEndTag(parser.getNamespace(), parser.getName());
           // we never end up in END_DOCUMENT; as we break the main already here.
@@ -322,7 +323,7 @@ public class Xml {
           }
           break;
         case XmlPullParser.START_TAG:
-          System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
+          System.out.println("START_TAG form " + globalLevel + " to " +  globalLevel.incrementAndGet() + " name: "+  parser.getName());
 
           if (customizeParser != null
               && customizeParser.stopBeforeStartTag(parser.getNamespace(), parser.getName())) {
@@ -359,8 +360,8 @@ public class Xml {
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
             // Primitive or Enum
             if (ignore || Data.isPrimitive(fieldType) || isEnum) {
-              int level = 1;
-              while (level != 0) {
+              int levelEntry = globalLevel.get();
+              while (globalLevel.get() != (levelEntry - 1)) {
                 switch (parser.next()) {
                   // Not sure, how this case y
                   case XmlPullParser.END_DOCUMENT:
@@ -368,15 +369,13 @@ public class Xml {
                     // This break is somehow hard to deal with; at least for now.
                     break main;
                   case XmlPullParser.START_TAG:
-                    System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
-                    level++;
+                    System.out.println("*START_TAG form " + globalLevel + " to " +  globalLevel.incrementAndGet() + " name: "+  parser.getName());
                     break;
                   case XmlPullParser.END_TAG:
-                    System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
-                    level--;
+                    System.out.println("*END_TAG form " + globalLevel + " to " +  globalLevel.decrementAndGet() + " name: "+  parser.getName());
                     break;
                   case XmlPullParser.TEXT:
-                    if (!ignore && level == 1) {
+                    if (!ignore && globalLevel.get() == levelEntry) {
                       parseAttributeOrTextContent(parser.getText(),
                           field,
                           valueType,
@@ -442,7 +441,7 @@ public class Xml {
                                                 final Map<String, Object> destinationMap,
                                                 final Field field, final String fieldName,
                                                 final Type fieldType, final Class<?> fieldClass,
-                                                final Integer globalLevel)
+                                                final AtomicInteger globalLevel)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
@@ -513,7 +512,7 @@ public class Xml {
                                                 final ArrayValueMap arrayValueMap,
                                                 boolean isStopped, final String fieldName,
                                                 final Type fieldType, final boolean isArray,
-                                                final Integer globalLevel)
+                                                final AtomicInteger globalLevel)
       throws XmlPullParserException, IOException {
     // TODO(yanivi): some duplicate code here; isolate into reusable methods
     FieldInfo fieldInfo = FieldInfo.of(field);
@@ -613,7 +612,7 @@ public class Xml {
                                                final Map<String, Object> destinationMap,
                                                final Field field, final String fieldName,
                                                final Type fieldType, final Class<?> fieldClass,
-                                               final Integer globalLevel)
+                                               final AtomicInteger globalLevel)
       throws IOException, XmlPullParserException {
 
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
@@ -658,25 +657,22 @@ public class Xml {
   }
 
   private static Object parseTextContentForElement(
-      XmlPullParser parser, List<Type> context, boolean ignoreTextContent, Type textContentType, Integer globalLevel)
+      XmlPullParser parser, List<Type> context, boolean ignoreTextContent, Type textContentType, AtomicInteger globalLevel)
       throws XmlPullParserException, IOException {
     Object result = null;
-    int level = 1;
-    while (level != 0) {
+    int levelEntry = globalLevel.get();
+    while (globalLevel.get() != levelEntry-1) {
       switch (parser.next()) {
         case XmlPullParser.END_DOCUMENT:
-          level = 0;
           break;
         case XmlPullParser.START_TAG:
-          System.out.println("START_TAG form " + globalLevel + " to " +  ++globalLevel + " name: "+  parser.getName());
-          level++;
+          System.out.println("#START_TAG form " + globalLevel + " to " +  globalLevel.incrementAndGet() + " name: "+  parser.getName() +  " hast: " + globalLevel.hashCode());
           break;
         case XmlPullParser.END_TAG:
-          System.out.println("END_TAG form " + globalLevel + " to " +  --globalLevel + " name: "+  parser.getName());
-          level--;
+          System.out.println("#END_TAG form " + globalLevel + " to " +  globalLevel.decrementAndGet() + " name: "+  parser.getName() +  " hast: " + globalLevel.hashCode());
           break;
         case XmlPullParser.TEXT:
-          if (!ignoreTextContent && level == 1) {
+          if (!ignoreTextContent && globalLevel.get() == levelEntry) {
             result = parseValue(textContentType, context, parser.getText());
           }
           break;
