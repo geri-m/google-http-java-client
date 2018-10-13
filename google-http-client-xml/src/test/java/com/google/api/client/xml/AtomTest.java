@@ -15,12 +15,19 @@
 package com.google.api.client.xml;
 
 import static org.junit.Assert.assertNull;
-import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.xml.atom.Atom;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.util.List;
-import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.xml.atom.AtomFeedParser;
+import com.google.api.client.xml.atom.AbstractAtomFeedParser;
+import com.google.api.client.xml.atom.Atom;
 
 /**
  * Tests {@link Atom}.
@@ -29,14 +36,18 @@ import org.junit.Test;
  */
 public class AtomTest {
 
+  private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link " +
+      "href=\"http://example.org/\"/>  <updated>2003-12-13T18:30:02Z</updated>  <author>    <name>John Doe</name>  </author>  " +
+      "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>  <entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " +
+      " <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry></feed>";
+
   @SuppressWarnings("unchecked")
   @Test
   public void testSetSlugHeader() {
     HttpHeaders headers = new HttpHeaders();
     assertNull(headers.get("Slug"));
     subtestSetSlugHeader(headers, "value", "value");
-    subtestSetSlugHeader(
-        headers, " !\"#$&'()*+,-./:;<=>?@[\\]^_`{|}~", " !\"#$&'()*+,-./:;<=>?@[\\]^_`{|}~");
+    subtestSetSlugHeader(headers, " !\"#$&'()*+,-./:;<=>?@[\\]^_`{|}~", " !\"#$&'()*+,-./:;<=>?@[\\]^_`{|}~");
     subtestSetSlugHeader(headers, "%D7%99%D7%A0%D7%99%D7%91", "יניב");
     subtestSetSlugHeader(headers, null, null);
   }
@@ -47,8 +58,27 @@ public class AtomTest {
     if (value == null) {
       assertNull(headers.get("Slug"));
     } else {
-      Assert.assertArrayEquals(
-          new String[] {expectedValue}, ((List<String>) headers.get("Slug")).toArray());
+      Assert.assertArrayEquals(new String[]{expectedValue}, ((List<String>) headers.get("Slug")).toArray());
     }
   }
+
+  @Test
+  public void testAtomFeedParser() throws XmlPullParserException, IOException {
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SAMPLE_FEED));
+    InputStream stream = new ByteArrayInputStream(SAMPLE_FEED.getBytes());
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary, parser, stream, Feed.class, FeedEntry.class);
+    Object obj = atomParser.parseFeed();
+  }
+
+  public static class Feed {
+
+  }
+
+  public static class FeedEntry {
+
+  }
+
+
 }

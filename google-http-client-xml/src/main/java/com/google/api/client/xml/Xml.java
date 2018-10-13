@@ -266,27 +266,9 @@ public class Xml {
         initForGenericXml(parser, namespaceDictionary, genericXml);
       }
 
-      // if we have a dedicated destination
+      // if we have a dedicated destination, parse the according Attributes
       if (destination != null) {
-        int attributeCount = parser.getAttributeCount();
-        for (int i = 0; i < attributeCount; i++) {
-          // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
-          // You can't. Attribute names are unique per element. (?)
-          String attributeName = parser.getAttributeName(i);
-          String attributeNamespace = parser.getAttributeNamespace(i);
-          String attributeAlias = attributeNamespace.length() == 0
-              ? "" : namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-          String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
-          Field fieldInit = classInfo == null ? null : classInfo.getField(fieldName);
-          parseAttributeOrTextContent(parser.getAttributeValue(i),
-              fieldInit,
-              valueType,
-              context,
-              destination,
-              genericXml,
-              destinationMap,
-              fieldName);
-        }
+        parseAttributesOfElement(parser, context, destination, valueType, namespaceDictionary, genericXml, destinationMap, classInfo);
       }
     }
     Field field;
@@ -421,9 +403,11 @@ public class Xml {
     } // end -- main: while (true)
     arrayValueMap.setValues();
 
+    /*
     if (isStopped) {
       throw new RuntimeException("Return Value is TRUE. Really?");
     }
+    */
 
     if(parser.getEventType() == XmlPullParser.END_DOCUMENT){
       System.out.println("Okay, now we are done");
@@ -431,6 +415,28 @@ public class Xml {
     System.out.println("ExitLevel: " + globalLevel);
 
     return isStopped;
+  }
+
+  private static void parseAttributesOfElement(final XmlPullParser parser, final ArrayList<Type> context, final Object destination, final Type valueType, final XmlNamespaceDictionary namespaceDictionary, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+    int attributeCount = parser.getAttributeCount();
+    for (int i = 0; i < attributeCount; i++) {
+      // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
+      // You can't. Attribute names are unique per element. (?)
+      String attributeName = parser.getAttributeName(i);
+      String attributeNamespace = parser.getAttributeNamespace(i);
+      String attributeAlias = attributeNamespace.length() == 0
+          ? "" : namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+      String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+      Field fieldInit = classInfo == null ? null : classInfo.getField(fieldName);
+      parseAttributeOrTextContent(parser.getAttributeValue(i),
+          fieldInit,
+          valueType,
+          context,
+          destination,
+          genericXml,
+          destinationMap,
+          fieldName);
+    }
   }
 
   private static boolean mapAsClassOrObjectType(final XmlPullParser parser,
