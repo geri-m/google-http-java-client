@@ -43,10 +43,14 @@ import com.google.api.client.xml.atom.Atom;
  */
 public class AtomTest {
 
+
   private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link " +
       "href=\"http://example.org/\"/>  <updated>2003-12-13T18:31:02Z</updated>  <author>    <name>John Doe</name>  </author>  " +
-      "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>  <entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " +
-      " <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry>" +
+      "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>  " +
+      "<entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " +
+      "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry>" +
+      "<entry>    <title>Atom-Powered Robots Run Amok!</title>    <link href=\"http://example.org/2003/12/13/atom02\"/>  " +
+      "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62</id>    <updated>2003-12-13T18:32:02Z</updated>    <summary>Some other text.</summary>  </entry>" +
       "</feed>";
 
   @SuppressWarnings("unchecked")
@@ -78,23 +82,46 @@ public class AtomTest {
     parser.setInput(new StringReader(SAMPLE_FEED));
     InputStream stream = new ByteArrayInputStream(SAMPLE_FEED.getBytes());
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary, parser, stream, Feed.class, FeedEntry.class);
-    Feed feed = (Feed)atomParser.parseFeed();
-    assertNotNull(feed.entry);
-    assertEquals(1, feed.entry.length);
-    assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a", feed.entry[0].id);
-    assertEquals("2003-12-13T18:30:02Z", feed.entry[0].updated);
-    assertEquals("Some text.", feed.entry[0].summary);
-    assertEquals("Atom-Powered Robots Run Amok", feed.entry[0].title);
-    assertEquals("http://example.org/2003/12/13/atom03", feed.entry[0].link.href);
+    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary,
+        parser, stream, Feed.class, FeedEntry.class);
+
+    Feed feed = (Feed) atomParser.parseFeed();
+
     assertEquals("John Doe", feed.author.name);
     assertEquals("urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6", feed.id);
     assertEquals("2003-12-13T18:31:02Z", feed.updated);
     assertEquals("Example Feed", feed.title);
     assertEquals("http://example.org/", feed.link.href);
 
-    Object obj = atomParser.parseNextEntry();
-    assertNull(obj);
+    FeedEntry entry1 = (FeedEntry)atomParser.parseNextEntry();
+    //assertNotNull(feed.entry);
+    assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a", entry1.id);
+    assertEquals("2003-12-13T18:30:02Z", entry1.updated);
+    assertEquals("Some text.", entry1.summary);
+    assertEquals("Atom-Powered Robots Run Amok", entry1.title);
+    assertEquals("http://example.org/2003/12/13/atom03", entry1.link.href);
+
+    FeedEntry entry2 = (FeedEntry)atomParser.parseNextEntry();
+    assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62", entry2.id);
+    assertEquals("2003-12-13T18:32:02Z", entry2.updated);
+    assertEquals("Some other text.", entry2.summary);
+    assertEquals("Atom-Powered Robots Run Amok!", entry2.title);
+    assertEquals("http://example.org/2003/12/13/atom02", entry2.link.href);
+    FeedEntry entry3 = (FeedEntry)atomParser.parseNextEntry();
+
+    assertNull(entry3);
+
+  }
+
+
+  @Test
+  public void testAtomFeedParserManual() throws XmlPullParserException, IOException {
+    Feed xml = new Feed();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SAMPLE_FEED));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertNotNull(xml);
   }
 
   @SuppressWarnings("unchecked")
@@ -107,10 +134,16 @@ public class AtomTest {
     Reader atomReader = new FileReader(atomFile);
     parser.setInput(atomReader);
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary, parser, stream, Feed.class, FeedEntry.class);
+    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary,
+        parser, stream, Feed.class, FeedEntry.class);
     Feed feed = (Feed)atomParser.parseFeed();
     assertNotNull(feed);
-    assertEquals(1, feed.entry.length);
+
+    int counter = 0;
+    FeedEntry entry = (FeedEntry)atomParser.parseNextEntry();
+    assertNotNull(entry);
+
+    // TODO: Iterative over Entries.
     atomReader.close();
     stream.close();
   }

@@ -211,26 +211,39 @@ public class Xml {
    * @param customizeParser optional parser customizer or {@code null} for none
    */
   public static void parseElement(XmlPullParser parser, Object destination,
-                                  XmlNamespaceDictionary namespaceDictionary, CustomizeParser customizeParser)
+                                  XmlNamespaceDictionary namespaceDictionary,
+                                  CustomizeParser customizeParser)
       throws IOException, XmlPullParserException {
     ArrayList<Type> context = new ArrayList<Type>();
     if (destination != null) {
       context.add(destination.getClass());
     }
-    parseElementInternal(parser, context, destination, null, namespaceDictionary, customizeParser);
+    parseElementInternal(parser, context, destination, null, namespaceDictionary,
+        customizeParser);
   }
 
   /**
    * Returns whether the customize parser has requested to stop or reached end of document.
    * Otherwise, identical to
-   * {@link #parseElement(XmlPullParser, Object, XmlNamespaceDictionary, CustomizeParser)} .
+   * {@link #parseElement(XmlPullParser, Object, XmlNamespaceDictionary, CustomizeParser)}.
+   *
+   * @param parser
+   * @param context
+   * @param destination this is the list of objects, that the XML will be parsed into
+   * @param valueType this the most recent/root element of where the XML is going to mapped
+   * @param namespaceDictionary
+   * @param customizeParser
+   * @return
+   * @throws IOException
+   * @throws XmlPullParserException
    */
   private static boolean parseElementInternal(XmlPullParser parser,
-                                              ArrayList<Type> context, // this is the list of objects, that the XML will be parsed into
-                                              Object destination, // this the most recent/root element of where the XML is going to mapped
+                                              ArrayList<Type> context,
+                                              Object destination,
                                               Type valueType,
                                               XmlNamespaceDictionary namespaceDictionary,
-                                              CustomizeParser customizeParser) throws IOException, XmlPullParserException {
+                                              CustomizeParser customizeParser)
+      throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
 
@@ -282,6 +295,9 @@ public class Xml {
     }
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(destination);
+
+    // is stopped is required for the ATOM Parser, just in case the parsing isStopped
+    // during parsing at some time.
     boolean isStopped = false;
     // TODO(yanivi): support Void type as "ignore" element/attribute
     main: while (true) {
@@ -317,6 +333,7 @@ public class Xml {
               && customizeParser.stopBeforeStartTag(parser.getNamespace(), parser.getName())) {
             isStopped = true;
             breakFromMain = true;
+            break;
           }
           // not sure how the case looks like, when this happens.
           if (destination == null) {
@@ -409,9 +426,6 @@ public class Xml {
     } // end -- main: while (true)
     arrayValueMap.setValues();
 
-    if (isStopped) {
-      throw new RuntimeException("Return Value is TRUE. Really?");
-    }
     return isStopped;
   }
 
