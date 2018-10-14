@@ -277,19 +277,19 @@ public class Xml {
     // TODO(yanivi): support Void type as "ignore" element/attribute
     main: while (true) {
       int event = parser.next();
-      boolean breakFromMain = false;
+      //boolean breakFromMain = false;
       switch (event) {
         case XmlPullParser.END_DOCUMENT:
           isStopped = true;
-          breakFromMain = true;
-          break;
+          // breakFromMain = true;
+          break main;
         case XmlPullParser.END_TAG:
           System.out.println("END_TAG form " + globalLevel + " to " +  globalLevel.decrementAndGet() + " name: "+  parser.getName());
           isStopped = customizeParser != null
               && customizeParser.stopAfterEndTag(parser.getNamespace(), parser.getName());
           // we never end up in END_DOCUMENT; as we break the main already here.
-          breakFromMain = true;
-          break;
+         // breakFromMain = true;
+          break main;
         case XmlPullParser.TEXT:
           // parse text content
           if (destination != null) {
@@ -310,7 +310,8 @@ public class Xml {
           if (customizeParser != null
               && customizeParser.stopBeforeStartTag(parser.getNamespace(), parser.getName())) {
             isStopped = true;
-            breakFromMain = true;
+            //breakFromMain = true;
+            break main;
           }
           // not sure how the case looks like, when this happens.
           if (destination == null) {
@@ -389,16 +390,16 @@ public class Xml {
           }
           if (isStopped || parser.getEventType() == XmlPullParser.END_DOCUMENT) {
             isStopped = true;
-            breakFromMain = true;
+            //breakFromMain = true;
           }
           break; // break Switch;
         default:
           throw new RuntimeException("Default in Main Switch");
       } // end -- switch (event)
-
+/*
       if (breakFromMain) {
         break;
-      }
+      }*/
 
     } // end -- main: while (true)
     arrayValueMap.setValues();

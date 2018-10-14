@@ -16,8 +16,13 @@ package com.google.api.client.xml;
 
 import static org.junit.Assert.assertNull;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
 import org.junit.Assert;
@@ -26,6 +31,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.xml.atom.AtomFeedParser;
+import com.google.api.client.util.Key;
 import com.google.api.client.xml.atom.AbstractAtomFeedParser;
 import com.google.api.client.xml.atom.Atom;
 
@@ -65,18 +71,84 @@ public class AtomTest {
   @Test
   public void testAtomFeedParser() throws XmlPullParserException, IOException {
     XmlPullParser parser = Xml.createParser();
+    // Wired. Both, the InputStream for the FeedParser and the XPP need to be set (?)
     parser.setInput(new StringReader(SAMPLE_FEED));
     InputStream stream = new ByteArrayInputStream(SAMPLE_FEED.getBytes());
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary, parser, stream, Feed.class, FeedEntry.class);
     Object obj = atomParser.parseFeed();
+    // TODO: Evaluate Result
+  }
+
+
+  @Test
+  public void testHeiseFeedParser() throws IOException, XmlPullParserException {
+    XmlPullParser parser = Xml.createParser();
+    ClassLoader classLoader = getClass().getClassLoader();
+    File atomFile = new File(classLoader.getResource("heise-atom.xml").getFile());
+    InputStream stream = new FileInputStream(atomFile);
+    Reader atomReader = new FileReader(atomFile);
+    parser.setInput(atomReader);
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary, parser, stream, Feed.class, FeedEntry.class);
+    Object obj = atomParser.parseFeed();
+    // TODO: Evaluate Result
+    atomReader.close();
+    stream.close();
   }
 
   public static class Feed {
 
+    @Key
+    private String title;
+
+    @Key
+    private Link link;
+
+    @Key
+    private String updated;
+
+    @Key
+    private Author author;
+
+    @Key
+    private String id;
+
+    @Key
+    private FeedEntry[] entry;
+
+  }
+
+  public static class Author {
+
+    @Key
+    private String name;
+  }
+
+  public static class Link {
+
+    @Key("@href")
+    private String href;
+
   }
 
   public static class FeedEntry {
+
+    @Key
+    private String title;
+
+    @Key
+    private Link link;
+
+    @Key
+    private String updated;
+
+    @Key
+    private String summary;
+
+    @Key
+    private String id;
+
 
   }
 
