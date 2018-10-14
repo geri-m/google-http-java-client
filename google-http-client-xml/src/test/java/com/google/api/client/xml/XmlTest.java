@@ -16,6 +16,7 @@ package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
@@ -46,6 +47,28 @@ public class XmlTest {
     public ValueType value;
   }
 
+  public static class AnyTypeMissingField {
+    @Key("@attr")
+    public Object attr;
+    @Key
+    public Object elem;
+    @Key
+    public ValueType value;
+  }
+
+  public static class AnyTypeAdditionalField {
+    @Key("@attr")
+    public Object attr;
+    @Key
+    public Object elem;
+    @Key
+    public Object rep;
+    @Key
+    public Object additionalField;
+    @Key
+    public ValueType value;
+  }
+
 
   public static class ValueType {
     @Key("text()")
@@ -55,6 +78,9 @@ public class XmlTest {
   private static final String ANY_TYPE_XML =
       "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<elem>content</elem><rep>rep1</rep><rep>rep2</rep><value>content</value></any>";
+
+  private static final String ANY_TYPE_MISSING_XML ="<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3" +
+      ".org/2005/Atom\"><elem>content</elem><value>content</value></any>";
 
   @SuppressWarnings("cast")
   @Test
@@ -76,6 +102,51 @@ public class XmlTest {
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(ANY_TYPE_XML, out.toString());
   }
+
+
+  @SuppressWarnings("cast")
+  @Test
+  public void testParse_anyTypeMissingField() throws Exception {
+    AnyTypeMissingField xml = new AnyTypeMissingField();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertTrue(xml.attr instanceof String);
+    assertTrue(xml.elem.toString(), xml.elem instanceof ArrayList<?>);
+    assertTrue(xml.value instanceof ValueType);
+    assertTrue(xml.value.content instanceof String);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_TYPE_MISSING_XML, out.toString());
+  }
+
+
+  @SuppressWarnings("cast")
+  @Test
+  public void testParse_anyTypeAdditionalField() throws Exception {
+    AnyTypeAdditionalField xml = new AnyTypeAdditionalField();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertTrue(xml.attr instanceof String);
+    assertTrue(xml.elem.toString(), xml.elem instanceof ArrayList<?>);
+    assertTrue(xml.value instanceof ValueType);
+    assertNull(xml.additionalField);
+    assertTrue(xml.rep.toString(), xml.rep instanceof ArrayList<?>);
+    assertTrue(xml.value.content instanceof String);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_TYPE_XML, out.toString());
+  }
+
 
   // this test only ensures, that there is no exception during paring with a NULL destination
   @Test
