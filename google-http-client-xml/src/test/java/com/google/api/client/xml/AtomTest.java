@@ -38,18 +38,22 @@ import com.google.api.client.xml.atom.Atom;
  * Tests {@link Atom}.
  *
  * @author Yaniv Inbar
+ * @author Gerald Madlmayr
  */
 public class AtomTest {
 
 
-  private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link " + "href" +
-      "=\"http://example.org/\"/>  <updated>2003-12-13T18:31:02Z</updated>  <author>    <name>John Doe</name>  </author>  " + "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6" +
-      "</id>  " + "<entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " + "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa" +
-      "-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry>" + "<entry>    <title>Atom-Powered Robots Run Amok!</title>    " +
-      "<link href=\"http://example.org/2003/12/13/atom02\"/>  " + "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62</id>    <updated>2003-12-13T18:32:02Z</updated>    " +
-      "<summary>Some other text.</summary>  </entry>" + "</feed>";
+  private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link href" +
+      "=\"http://example.org/\"/>  <updated>2003-12-13T18:31:02Z</updated>  <author>    <name>John Doe</name>  </author>  <id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6" +
+      "</id>  <entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   <id>urn:uuid:1225c695-cfb8-4ebb-aaaa" +
+      "-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry><entry>    <title>Atom-Powered Robots Run Amok!</title>    " +
+      "<link href=\"http://example.org/2003/12/13/atom02\"/>  <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62</id>    <updated>2003-12-13T18:32:02Z</updated>    " +
+      "<summary>Some other text.</summary>  </entry></feed>";
 
-  @SuppressWarnings("unchecked")
+  /**
+   * Test for checking the Slug Header
+   */
+    @SuppressWarnings("unchecked")
   @Test
   public void testSetSlugHeader() {
     HttpHeaders headers = new HttpHeaders();
@@ -71,6 +75,16 @@ public class AtomTest {
     }
   }
 
+  /**
+   * This Tests parses a simple Atom Feed given as a Constant. All element are evaluated, to see if everything works fine.
+   * For Parsing a dedicated {@link AtomFeedParser} is used.
+   *
+   * The purpose of this test is to test the {@link AtomFeedParser#parseFeed} and {@link AtomFeedParser#parseNextEntry} and
+   * see if the from the XML element to the Entity classes is done correctly.
+   *
+   * @throws XmlPullParserException in case XML parsing Fails
+   * @throws IOException in case reading the string fails
+   */
   @SuppressWarnings("unchecked")
   @Test
   public void testAtomFeedParser() throws XmlPullParserException, IOException {
@@ -83,7 +97,6 @@ public class AtomTest {
         parser, stream, Feed.class, FeedEntry.class);
 
     Feed feed = (Feed) atomParser.parseFeed();
-
     assertEquals("John Doe", feed.author.name);
     assertEquals("urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6", feed.id);
     assertEquals("2003-12-13T18:31:02Z", feed.updated);
@@ -104,21 +117,64 @@ public class AtomTest {
     assertEquals("Some other text.", entry2.summary);
     assertEquals("Atom-Powered Robots Run Amok!", entry2.title);
     assertEquals("http://example.org/2003/12/13/atom02", entry2.link.href);
+
     FeedEntry entry3 = (FeedEntry) atomParser.parseNextEntry();
     assertNull(entry3);
+
+    atomParser.close();
   }
 
-
+  /**
+   * Manuel Tests of a Constant String to see if the data structure can be parsed in the regular way and get the same result.
+   *
+   * The purpose of this test is to evaluate, if the parsed elements are the same with the {@link AtomFeedParser}.
+   *
+   * @throws XmlPullParserException in case XML parsing Fails
+   * @throws IOException in case reading the string fails
+   */
+  @SuppressWarnings("unchecked")
   @Test
-  public void testAtomFeedParserManual() throws XmlPullParserException, IOException {
-    Feed xml = new Feed();
+  public void testAtomFeedParserRegualar() throws XmlPullParserException, IOException {
+    Feed feed = new Feed();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SAMPLE_FEED));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    assertNotNull(xml);
+    Xml.parseElement(parser, feed, namespaceDictionary, null);
+    assertNotNull(feed);
+    assertEquals(2, feed.entry.length);
+
+    assertEquals("John Doe", feed.author.name);
+    assertEquals("urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6", feed.id);
+    assertEquals("2003-12-13T18:31:02Z", feed.updated);
+    assertEquals("Example Feed", feed.title);
+    assertEquals("http://example.org/", feed.link.href);
+
+    FeedEntry entry1 = feed.entry[0];
+    //assertNotNull(feed.entry);
+    assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a", entry1.id);
+    assertEquals("2003-12-13T18:30:02Z", entry1.updated);
+    assertEquals("Some text.", entry1.summary);
+    assertEquals("Atom-Powered Robots Run Amok", entry1.title);
+    assertEquals("http://example.org/2003/12/13/atom03", entry1.link.href);
+
+    FeedEntry entry2 = feed.entry[1];
+    assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62", entry2.id);
+    assertEquals("2003-12-13T18:32:02Z", entry2.updated);
+    assertEquals("Some other text.", entry2.summary);
+    assertEquals("Atom-Powered Robots Run Amok!", entry2.title);
+    assertEquals("http://example.org/2003/12/13/atom02", entry2.link.href);
   }
 
+  /**
+   * Reading an XML ATOM Feed from a file and valid if all the {@link FeedEntry} are present. No detailed
+   * evaluation of each element
+   *
+   * Purpose of this tests is to read a bunch of elements which contain additional elements (HTML in this case),
+   * that are not part of the {@link FeedEntry} and to see if there is an issue if we parse some more entries.
+   *
+   * @throws XmlPullParserException in case XML parsing Fails
+   * @throws IOException in case reading the string fails
+   */
   @SuppressWarnings("unchecked")
   @Test
   public void testHeiseFeedParser() throws IOException, XmlPullParserException {
@@ -136,21 +192,19 @@ public class AtomTest {
       counter++;
     }
 
+    atomParser.close();
     assertEquals(62, counter);
-
   }
 
   /**
-   * Taken from {@url https://stackoverflow.com/questions/326390/how-do-i-create-a-java-string-from-the-contents-of-a-file}
-   *
    * We need to method to read the file into a string, as otherwise, the parsing does not work properly.
    *
-   * @param file
-   * @return
-   * @throws IOException
+   * @see <a href="https://stackoverflow.com/questions/326390/how-do-i-create-a-java-string-from-the-contents-of-a-file">Stackoverflow</a>
+   *
+   * @param file File name in the resource folder that will be parsed
+   * @return Content of the File as String.
+   * @throws IOException in case the file was not able to be parsed
    */
-
-  //
   private String readFile(String file) throws IOException {
     ClassLoader classLoader = getClass().getClassLoader();
     BufferedReader reader = new BufferedReader(new FileReader(classLoader.getResource(file)
@@ -169,61 +223,54 @@ public class AtomTest {
     }
   }
 
+  /**
+   * Feed Element to map the XML to
+   */
   public static class Feed {
-
     @Key
     private String title;
-
     @Key
     private Link link;
-
     @Key
     private String updated;
-
     @Key
     private Author author;
-
     @Key
     private String id;
-
     @Key
     private FeedEntry[] entry;
-
   }
 
+  /**
+   * Author Element as part of the {@link Feed} Element to map the XML to
+   */
   public static class Author {
-
     @Key
     private String name;
   }
 
+  /**
+   * Link Element as part of the {@link Feed} Element to map the XML to
+   */
   public static class Link {
-
     @Key("@href")
     private String href;
-
   }
 
+  /**
+   * Entry Element to cover the Entries of a Atom {@link Feed}
+   */
   public static class FeedEntry {
-
     @Key
     private String title;
-
     @Key
     private Link link;
-
     @Key
     private String updated;
-
     @Key
     private String summary;
-
     @Key
     private String id;
-
-
   }
-
-
 }
 

@@ -305,6 +305,7 @@ public class Xml {
       int event = parser.next();
       boolean breakFromMain = false;
       switch (event) {
+        // Never reached while Testing
         case XmlPullParser.END_DOCUMENT:
           isStopped = true;
           breakFromMain = true;
@@ -312,7 +313,6 @@ public class Xml {
         case XmlPullParser.END_TAG:
           isStopped = customizeParser != null
               && customizeParser.stopAfterEndTag(parser.getNamespace(), parser.getName());
-          // we never end up in END_DOCUMENT; as we break the main already here.
           breakFromMain = true;
           break;
         case XmlPullParser.TEXT:
@@ -369,7 +369,7 @@ public class Xml {
               int level = 1;
               while (level != 0) {
                 switch (parser.next()) {
-                  // Not sure, how this case y
+                  // Never reached while Testing
                   case XmlPullParser.END_DOCUMENT:
                     isStopped = true;
                     // This break is somehow hard to deal with; at least for now.
@@ -392,6 +392,7 @@ public class Xml {
                           fieldName);
                     }
                     break;
+                  // Never reached while Testing
                   default:
                     throw new RuntimeException("Default in Object Switch");
                 }
@@ -411,11 +412,20 @@ public class Xml {
                   fieldClass);
             }
           }
-          if (isStopped || parser.getEventType() == XmlPullParser.END_DOCUMENT) {
+
+          // Never reached while Testing
+          if(parser.getEventType() == XmlPullParser.END_DOCUMENT){
             isStopped = true;
+          }
+
+          // Never reached while Testing
+          if (isStopped) {
             breakFromMain = true;
           }
+
           break; // break Switch;
+
+        // Never reached while Testing
         default:
           throw new RuntimeException("Default in Main Switch");
       } // end -- switch (event)
