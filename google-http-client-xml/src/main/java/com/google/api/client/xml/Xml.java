@@ -237,6 +237,7 @@ public class Xml {
    * @throws IOException
    * @throws XmlPullParserException
    */
+
   private static boolean parseElementInternal(XmlPullParser parser,
                                               ArrayList<Type> context,
                                               Object destination,
@@ -296,8 +297,8 @@ public class Xml {
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(destination);
 
-    // is stopped is required for the ATOM Parser, just in case the parsing isStopped
-    // during parsing at some time.
+    // is stopped is required for the ATOM Parser, just in case the parsing
+    //  isStopped during parsing at some time.
     boolean isStopped = false;
     // TODO(yanivi): support Void type as "ignore" element/attribute
     main: while (true) {

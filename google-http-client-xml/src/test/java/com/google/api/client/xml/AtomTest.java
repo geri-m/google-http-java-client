@@ -17,13 +17,11 @@ package com.google.api.client.xml;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
 import org.junit.Assert;
@@ -44,14 +42,12 @@ import com.google.api.client.xml.atom.Atom;
 public class AtomTest {
 
 
-  private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link " +
-      "href=\"http://example.org/\"/>  <updated>2003-12-13T18:31:02Z</updated>  <author>    <name>John Doe</name>  </author>  " +
-      "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6</id>  " +
-      "<entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " +
-      "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry>" +
-      "<entry>    <title>Atom-Powered Robots Run Amok!</title>    <link href=\"http://example.org/2003/12/13/atom02\"/>  " +
-      "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62</id>    <updated>2003-12-13T18:32:02Z</updated>    <summary>Some other text.</summary>  </entry>" +
-      "</feed>";
+  private static final String SAMPLE_FEED = "<?xml version=\"1.0\" encoding=\"utf-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\">  <title>Example Feed</title>  <link " + "href" +
+      "=\"http://example.org/\"/>  <updated>2003-12-13T18:31:02Z</updated>  <author>    <name>John Doe</name>  </author>  " + "<id>urn:uuid:60a76c80-d399-11d9-b93C-0003939e0af6" +
+      "</id>  " + "<entry>    <title>Atom-Powered Robots Run Amok</title>    <link href=\"http://example.org/2003/12/13/atom03\"/>   " + "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa" +
+      "-80da344efa6a</id>    <updated>2003-12-13T18:30:02Z</updated>    <summary>Some text.</summary>  </entry>" + "<entry>    <title>Atom-Powered Robots Run Amok!</title>    " +
+      "<link href=\"http://example.org/2003/12/13/atom02\"/>  " + "<id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62</id>    <updated>2003-12-13T18:32:02Z</updated>    " +
+      "<summary>Some other text.</summary>  </entry>" + "</feed>";
 
   @SuppressWarnings("unchecked")
   @Test
@@ -70,7 +66,8 @@ public class AtomTest {
     if (value == null) {
       assertNull(headers.get("Slug"));
     } else {
-      Assert.assertArrayEquals(new String[]{expectedValue}, ((List<String>) headers.get("Slug")).toArray());
+      Assert.assertArrayEquals(new String[]{expectedValue},
+          ((List<String>) headers.get("Slug")).toArray());
     }
   }
 
@@ -93,7 +90,7 @@ public class AtomTest {
     assertEquals("Example Feed", feed.title);
     assertEquals("http://example.org/", feed.link.href);
 
-    FeedEntry entry1 = (FeedEntry)atomParser.parseNextEntry();
+    FeedEntry entry1 = (FeedEntry) atomParser.parseNextEntry();
     //assertNotNull(feed.entry);
     assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a", entry1.id);
     assertEquals("2003-12-13T18:30:02Z", entry1.updated);
@@ -101,16 +98,14 @@ public class AtomTest {
     assertEquals("Atom-Powered Robots Run Amok", entry1.title);
     assertEquals("http://example.org/2003/12/13/atom03", entry1.link.href);
 
-    FeedEntry entry2 = (FeedEntry)atomParser.parseNextEntry();
+    FeedEntry entry2 = (FeedEntry) atomParser.parseNextEntry();
     assertEquals("urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa62", entry2.id);
     assertEquals("2003-12-13T18:32:02Z", entry2.updated);
     assertEquals("Some other text.", entry2.summary);
     assertEquals("Atom-Powered Robots Run Amok!", entry2.title);
     assertEquals("http://example.org/2003/12/13/atom02", entry2.link.href);
-    FeedEntry entry3 = (FeedEntry)atomParser.parseNextEntry();
-
+    FeedEntry entry3 = (FeedEntry) atomParser.parseNextEntry();
     assertNull(entry3);
-
   }
 
 
@@ -128,24 +123,50 @@ public class AtomTest {
   @Test
   public void testHeiseFeedParser() throws IOException, XmlPullParserException {
     XmlPullParser parser = Xml.createParser();
-    ClassLoader classLoader = getClass().getClassLoader();
-    File atomFile = new File(classLoader.getResource("heise-atom.xml").getFile());
-    InputStream stream = new FileInputStream(atomFile);
-    Reader atomReader = new FileReader(atomFile);
-    parser.setInput(atomReader);
+    final String read = readFile("heise-atom.xml");
+    parser.setInput(new StringReader(read));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     AbstractAtomFeedParser atomParser = new AtomFeedParser<Feed, FeedEntry>(namespaceDictionary,
-        parser, stream, Feed.class, FeedEntry.class);
-    Feed feed = (Feed)atomParser.parseFeed();
+        parser, new ByteArrayInputStream(read.getBytes()), Feed.class, FeedEntry.class);
+    Feed feed = (Feed) atomParser.parseFeed();
     assertNotNull(feed);
 
     int counter = 0;
-    FeedEntry entry = (FeedEntry)atomParser.parseNextEntry();
-    assertNotNull(entry);
+    while (atomParser.parseNextEntry() != null) {
+      counter++;
+    }
 
-    // TODO: Iterative over Entries.
-    atomReader.close();
-    stream.close();
+    assertEquals(62, counter);
+
+  }
+
+  /**
+   * Taken from {@url https://stackoverflow.com/questions/326390/how-do-i-create-a-java-string-from-the-contents-of-a-file}
+   *
+   * We need to method to read the file into a string, as otherwise, the parsing does not work properly.
+   *
+   * @param file
+   * @return
+   * @throws IOException
+   */
+
+  //
+  private String readFile(String file) throws IOException {
+    ClassLoader classLoader = getClass().getClassLoader();
+    BufferedReader reader = new BufferedReader(new FileReader(classLoader.getResource(file)
+        .getFile()));
+    String line;
+    StringBuilder stringBuilder = new StringBuilder();
+
+    try {
+      while ((line = reader.readLine()) != null) {
+        stringBuilder.append(line);
+      }
+
+      return stringBuilder.toString();
+    } finally {
+      reader.close();
+    }
   }
 
   public static class Feed {
