@@ -291,117 +291,122 @@ public class Xml {
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(parameter.destination);
 
-    // is stopped is required for the ATOM Parser, just in case the parsing
-    //  isStopped during parsing at some time.
-   // boolean isStopped = false;
 
-    DoubleBooleanResult result = new DoubleBooleanResult(false, false);
+
 
     // TODO(yanivi): support Void type as "ignore" element/attribute
-    main: while (true) {
+    DoubleBooleanResult result = new DoubleBooleanResult(false, false);
+    while (true) {
       int event = parameter.parser.next();
-      //boolean breakFromMain = false;
-      switch (event) {
-        // Never reached while Testing
-        case XmlPullParser.END_DOCUMENT:
-          result.isStopped = true;
-          result.breakFromMain = true;
-          break;
-        case XmlPullParser.END_TAG:
-          result.isStopped = parameter.customizeParser != null
-              && parameter.customizeParser.stopAfterEndTag(parameter.parser.getNamespace(), parameter.parser.getName());
-          result.breakFromMain = true;
-          break;
-        case XmlPullParser.TEXT:
-          // parse text content
-          if (parameter.destination != null) {
-            field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
-            parseAttributeOrTextContent(parameter.parser.getText(),
-                field,
-                parameter.valueType,
-                parameter.context,
-                parameter.destination,
-                genericXml,
-                destinationMap,
-                TEXT_CONTENT);
-          }
-          break;
-        case XmlPullParser.START_TAG:
-          if (parameter.customizeParser != null
-              && parameter.customizeParser.stopBeforeStartTag(parameter.parser.getNamespace(), parameter.parser.getName())) {
-            result.isStopped = true;
-            result.breakFromMain = true;
-            break;
-          }
-          // not sure how the case looks like, when this happens.
-          if (parameter.destination == null) {
-            // we ignore the result, as we can't map it to anything. we parse for sanity?
-            parseTextContentForElement(parameter.parser, parameter.context, true, null);
-          } else {
-            // element
-            parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
-            String namespace = parameter.parser.getNamespace();
-            String alias = parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
-
-            //  get the "real" field name of the
-            String fieldName = getFieldName(false, alias, namespace, parameter.parser.getName());
-
-            // fetch the field from the classInfo
-            field = classInfo == null ? null : classInfo.getField(fieldName);
-            Type fieldType = field == null ? parameter.valueType : field.getGenericType();
-            fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, fieldType);
-            // field type is now class, parameterized type, or generic array type
-            // resolve a parameterized type to a class
-            Class<?> fieldClass = fieldType instanceof Class<?> ? (Class<?>) fieldType : null;
-            if (fieldType instanceof ParameterizedType) {
-              fieldClass = Types.getRawClass((ParameterizedType) fieldType);
-            }
-            boolean isArray = Types.isArray(fieldType);
-            // text content
-            boolean ignore = field == null && destinationMap == null && genericXml == null;
-            // is the field an Enum
-            boolean isEnum = fieldClass != null && fieldClass.isEnum();
-            // Primitive or Enum
-            if (ignore || Data.isPrimitive(fieldType) || isEnum) {
-              result = mapCommonObject(parameter, genericXml, field, destinationMap, fieldName, ignore);
-              // Handle as Map or Nested Class
-            } else if (fieldType == null || fieldClass != null
-                && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
-              result.isStopped = mapAsClassOrObjectType(parameter, destinationMap, field, fieldName, fieldType, fieldClass);
-            } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
-              result.isStopped = mapAsArrayOrCollection(parameter, genericXml, destinationMap, field, arrayValueMap,
-                  fieldName, fieldType, isArray);
-            } else {
-              result.isStopped = mapArrayWithClassType(parameter, genericXml, destinationMap, field, fieldName, fieldType,
-                  fieldClass);
-            }
-          }
-
-          // Never reached while Testing
-          if(parameter.parser.getEventType() == XmlPullParser.END_DOCUMENT){
-            result.isStopped = true;
-          }
-
-          // Never reached while Testing
-          if (result.isStopped) {
-            result.breakFromMain = true;
-          }
-
-          break; // break Switch;
-
-        // Never reached while Testing
-        default:
-          throw new RuntimeException("Default in Main Switch");
-      } // end -- switch (event)
-
+      result = mainSwitchCase(parameter, genericXml, destinationMap, classInfo, arrayValueMap, event, result);
       if (result.breakFromMain) {
         break;
       }
-
     } // end -- main: while (true)
     arrayValueMap.setValues();
 
     return result.isStopped;
+  }
+
+  private static DoubleBooleanResult mainSwitchCase(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo, final ArrayValueMap arrayValueMap, final int event, DoubleBooleanResult result) throws XmlPullParserException, IOException {
+    final Field field;
+    switch (event) {
+      // Never reached while Testing
+      case XmlPullParser.END_DOCUMENT:
+        result.isStopped = true;
+        result.breakFromMain = true;
+        break;
+      case XmlPullParser.END_TAG:
+        result.isStopped = parameter.customizeParser != null
+            && parameter.customizeParser.stopAfterEndTag(parameter.parser.getNamespace(), parameter.parser.getName());
+        result.breakFromMain = true;
+        break;
+      case XmlPullParser.TEXT:
+        // parse text content
+        if (parameter.destination != null) {
+          field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
+          parseAttributeOrTextContent(parameter.parser.getText(),
+              field,
+              parameter.valueType,
+              parameter.context,
+              parameter.destination,
+              genericXml,
+              destinationMap,
+              TEXT_CONTENT);
+        }
+        break;
+      case XmlPullParser.START_TAG:
+        result = doRead(parameter, genericXml, destinationMap, classInfo, arrayValueMap, result);
+        break;
+      // Never reached while Testing
+      default:
+        throw new RuntimeException("Default in Main Switch");
+    } // end -- switch (event)
+    return result;
+  }
+
+  private static DoubleBooleanResult doRead(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo, final ArrayValueMap arrayValueMap, DoubleBooleanResult result) throws XmlPullParserException, IOException {
+    final Field field;
+    if (parameter.customizeParser != null
+        && parameter.customizeParser.stopBeforeStartTag(parameter.parser.getNamespace(), parameter.parser.getName())) {
+      result.isStopped = true;
+      result.breakFromMain = true;
+      return result;
+    }
+    // not sure how the case looks like, when this happens.
+    if (parameter.destination == null) {
+      // we ignore the result, as we can't map it to anything. we parse for sanity?
+      parseTextContentForElement(parameter.parser, parameter.context, true, null);
+    } else {
+      // element
+      parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
+      String namespace = parameter.parser.getNamespace();
+      String alias = parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
+
+      //  get the "real" field name of the
+      String fieldName = getFieldName(false, alias, namespace, parameter.parser.getName());
+
+      // fetch the field from the classInfo
+      field = classInfo == null ? null : classInfo.getField(fieldName);
+      Type fieldType = field == null ? parameter.valueType : field.getGenericType();
+      fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, fieldType);
+      // field type is now class, parameterized type, or generic array type
+      // resolve a parameterized type to a class
+      Class<?> fieldClass = fieldType instanceof Class<?> ? (Class<?>) fieldType : null;
+      if (fieldType instanceof ParameterizedType) {
+        fieldClass = Types.getRawClass((ParameterizedType) fieldType);
+      }
+      boolean isArray = Types.isArray(fieldType);
+      // text content
+      boolean ignore = field == null && destinationMap == null && genericXml == null;
+      // is the field an Enum
+      boolean isEnum = fieldClass != null && fieldClass.isEnum();
+      // Primitive or Enum
+      if (ignore || Data.isPrimitive(fieldType) || isEnum) {
+        result = mapCommonObject(parameter, genericXml, field, destinationMap, fieldName, ignore);
+        // Handle as Map or Nested Class
+      } else if (fieldType == null || fieldClass != null
+          && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
+        result.isStopped = mapAsClassOrObjectType(parameter, destinationMap, field, fieldName, fieldType, fieldClass);
+      } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
+        result.isStopped = mapAsArrayOrCollection(parameter, genericXml, destinationMap, field, arrayValueMap,
+            fieldName, fieldType, isArray);
+      } else {
+        result.isStopped = mapArrayWithClassType(parameter, genericXml, destinationMap, field, fieldName, fieldType,
+            fieldClass);
+      }
+    }
+
+    // Never reached while Testing
+    if(parameter.parser.getEventType() == XmlPullParser.END_DOCUMENT){
+      result.isStopped = true;
+    }
+
+    // Never reached while Testing
+    if (result.isStopped) {
+      result.breakFromMain = true;
+    }
+    return result;
   }
 
   private static class DoubleBooleanResult {
