@@ -259,7 +259,7 @@ public class Xml {
    * @throws IOException
    * @throws XmlPullParserException
    */
-
+  @SuppressWarnings("unchecked")
   private static boolean parseElementInternal(final ParserParameter parameter)
       throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
@@ -267,10 +267,9 @@ public class Xml {
 
     // if the destination is a GenericXML then we are going the set the generic XML.
     GenericXml genericXml = parameter.destination instanceof GenericXml ? (GenericXml) parameter.destination : null;
-    @SuppressWarnings("unchecked")
 
     // if the destination is GenericXML and the destination is a Map, create a destination Map.
-        Map<String, Object> destinationMap =
+    Map<String, Object> destinationMap =
         genericXml == null && parameter.destination instanceof Map<?, ?> ? Map.class.cast(parameter.destination) : null;
 
     // if there is a class, we want to put the data into, create the class Info for this
@@ -282,55 +281,36 @@ public class Xml {
       parameter.parser.next();
     }
 
-
     parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
-    // if we have a generic XML, set the namespace
-    if (genericXml != null) {
-      initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-    }
 
-    // if we have a dedicated destination
-    if (parameter.destination != null) {
-      int attributeCount = parameter.parser.getAttributeCount();
-      for (int i = 0; i < attributeCount; i++) {
-        // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
-        // You can't. Attribute names are unique per element. (?)
-        String attributeName = parameter.parser.getAttributeName(i);
-        String attributeNamespace = parameter.parser.getAttributeNamespace(i);
-        String attributeAlias = attributeNamespace.length() == 0
-            ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
-        Field field = classInfo == null ? null : classInfo.getField(fieldName);
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-            field,
-            parameter.valueType,
-            parameter.context,
-            parameter.destination,
-            genericXml,
-            destinationMap,
-            fieldName);
-      }
-    }
+    // if we have a generic XML, set the namespace
+    initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
+
+    // if we have a dedicated destination, parse the attributes into the object map
+    parseAttributes(parameter, genericXml, destinationMap, classInfo);
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(parameter.destination);
 
     // is stopped is required for the ATOM Parser, just in case the parsing
     //  isStopped during parsing at some time.
-    boolean isStopped = false;
+   // boolean isStopped = false;
+
+    DoubleBooleanResult result = new DoubleBooleanResult(false, false);
+
     // TODO(yanivi): support Void type as "ignore" element/attribute
     main: while (true) {
       int event = parameter.parser.next();
-      boolean breakFromMain = false;
+      //boolean breakFromMain = false;
       switch (event) {
         // Never reached while Testing
         case XmlPullParser.END_DOCUMENT:
-          isStopped = true;
-          breakFromMain = true;
+          result.isStopped = true;
+          result.breakFromMain = true;
           break;
         case XmlPullParser.END_TAG:
-          isStopped = parameter.customizeParser != null
+          result.isStopped = parameter.customizeParser != null
               && parameter.customizeParser.stopAfterEndTag(parameter.parser.getNamespace(), parameter.parser.getName());
-          breakFromMain = true;
+          result.breakFromMain = true;
           break;
         case XmlPullParser.TEXT:
           // parse text content
@@ -349,8 +329,8 @@ public class Xml {
         case XmlPullParser.START_TAG:
           if (parameter.customizeParser != null
               && parameter.customizeParser.stopBeforeStartTag(parameter.parser.getNamespace(), parameter.parser.getName())) {
-            isStopped = true;
-            breakFromMain = true;
+            result.isStopped = true;
+            result.breakFromMain = true;
             break;
           }
           // not sure how the case looks like, when this happens.
@@ -383,61 +363,28 @@ public class Xml {
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
             // Primitive or Enum
             if (ignore || Data.isPrimitive(fieldType) || isEnum) {
-              int level = 1;
-              while (level != 0) {
-                switch (parameter.parser.next()) {
-                  // Never reached while Testing
-                  case XmlPullParser.END_DOCUMENT:
-                    isStopped = true;
-                    // This break is somehow hard to deal with; at least for now.
-                    break main;
-                  case XmlPullParser.START_TAG:
-                    level++;
-                    break;
-                  case XmlPullParser.END_TAG:
-                    level--;
-                    break;
-                  case XmlPullParser.TEXT:
-                    if (!ignore && level == 1) {
-                      parseAttributeOrTextContent(parameter.parser.getText(),
-                          field,
-                          parameter.valueType,
-                          parameter.context,
-                          parameter.destination,
-                          genericXml,
-                          destinationMap,
-                          fieldName);
-                    }
-                    break;
-                  // Never reached while Testing
-                  default:
-                    throw new RuntimeException("Default in Object Switch");
-                }
-              }
+              result = mapCommonObject(parameter, genericXml, field, destinationMap, fieldName, ignore);
               // Handle as Map or Nested Class
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
-              isStopped = mapAsClassOrObjectType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
+              result.isStopped = mapAsClassOrObjectType(parameter, destinationMap, field, fieldName, fieldType, fieldClass);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
-              isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, genericXml, destinationMap, field, arrayValueMap, isStopped,
+              result.isStopped = mapAsArrayOrCollection(parameter, genericXml, destinationMap, field, arrayValueMap,
                   fieldName, fieldType, isArray);
             } else {
-              isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
+              result.isStopped = mapArrayWithClassType(parameter, genericXml, destinationMap, field, fieldName, fieldType,
                   fieldClass);
             }
           }
 
           // Never reached while Testing
           if(parameter.parser.getEventType() == XmlPullParser.END_DOCUMENT){
-            isStopped = true;
+            result.isStopped = true;
           }
 
           // Never reached while Testing
-          if (isStopped) {
-            breakFromMain = true;
+          if (result.isStopped) {
+            result.breakFromMain = true;
           }
 
           break; // break Switch;
@@ -447,42 +394,128 @@ public class Xml {
           throw new RuntimeException("Default in Main Switch");
       } // end -- switch (event)
 
-      if (breakFromMain) {
+      if (result.breakFromMain) {
         break;
       }
 
     } // end -- main: while (true)
     arrayValueMap.setValues();
 
-    return isStopped;
+    return result.isStopped;
   }
 
-  private static boolean mapAsClassOrObjectType(final XmlPullParser parser,
-                                                final ArrayList<Type> context,
-                                                final Object destination,
-                                                final XmlNamespaceDictionary namespaceDictionary,
-                                                final CustomizeParser customizeParser,
+  private static class DoubleBooleanResult {
+
+    boolean breakFromMain;
+    boolean isStopped;
+
+    public DoubleBooleanResult(final boolean breakFromMain,
+  final boolean isStopped){
+      this.breakFromMain = breakFromMain;
+      this.isStopped = isStopped;
+  }
+  }
+
+  private static DoubleBooleanResult mapCommonObject(ParserParameter parameter,
+                                                     final GenericXml genericXml,
+                                                     final Field field,
+                                                     final Map<String, Object> destinationMap,
+                                                     final String fieldName,
+                                                     final boolean ignore) throws IOException, XmlPullParserException {
+    boolean isStopped = false;
+    boolean breakFromMainNext = false;
+    int level = 1;
+    while (level != 0) {
+      switch (parameter.parser.next()) {
+        // Never reached while Testing
+        case XmlPullParser.END_DOCUMENT:
+          isStopped = true;
+          // This break is somehow hard to deal with; at least for now.
+          breakFromMainNext = true;
+        case XmlPullParser.START_TAG:
+          level++;
+          break;
+        case XmlPullParser.END_TAG:
+          level--;
+          break;
+        case XmlPullParser.TEXT:
+          if (!ignore && level == 1) {
+            parseAttributeOrTextContent(parameter.parser.getText(),
+                field,
+                parameter.valueType,
+                parameter.context,
+                parameter.destination,
+                genericXml,
+                destinationMap,
+                fieldName);
+          }
+          break;
+        // Never reached while Testing
+        default:
+          throw new RuntimeException("Default in Object Switch");
+
+      } // switch
+      if(breakFromMainNext){
+        break;
+      }
+    }
+
+   return new DoubleBooleanResult(breakFromMainNext, isStopped);
+
+
+  }
+
+  private static void parseAttributes(final ParserParameter parameter,
+                                      final GenericXml genericXml,
+                                      final Map<String, Object> destinationMap,
+                                      final ClassInfo classInfo) {
+    if (parameter.destination != null) {
+      int attributeCount = parameter.parser.getAttributeCount();
+      for (int i = 0; i < attributeCount; i++) {
+        // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
+        // You can't. Attribute names are unique per element. (?)
+        String attributeName = parameter.parser.getAttributeName(i);
+        String attributeNamespace = parameter.parser.getAttributeNamespace(i);
+        String attributeAlias = attributeNamespace.length() == 0
+            ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+        Field field = classInfo == null ? null : classInfo.getField(fieldName);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
+            field,
+            parameter.valueType,
+            parameter.context,
+            parameter.destination,
+            genericXml,
+            destinationMap,
+            fieldName);
+      }
+    }
+  }
+
+  private static boolean mapAsClassOrObjectType(final ParserParameter parameter,
                                                 final Map<String, Object> destinationMap,
-                                                final Field field, final String fieldName,
-                                                final Type fieldType, final Class<?> fieldClass)
+                                                final Field field,
+                                                final String fieldName,
+                                                final Type fieldType,
+                                                final Class<?> fieldClass)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
-    int contextSize = context.size();
+    int contextSize = parameter.context.size();
     if (fieldType != null) {
-      context.add(fieldType);
+      parameter.context.add(fieldType);
     }
     Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
         ? Types.getMapValueParameter(fieldType) : null;
-    subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
-    isStopped = parseElementInternal(new ParserParameter(parser,
-        context,
+    subValueType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, subValueType);
+    isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+        parameter.context,
         mapValue, // destination; never null
         subValueType,
-        namespaceDictionary,
-        customizeParser));
+        parameter.namespaceDictionary,
+        parameter.customizeParser));
     if (fieldType != null) {
-      context.remove(contextSize);
+      parameter.context.remove(contextSize);
     }
     if (destinationMap != null) {
       // map but not GenericXml: store as ArrayList of elements
@@ -499,19 +532,19 @@ public class Xml {
       if (fieldClass == Object.class) {
         // field is an Object: store as ArrayList of element maps
         @SuppressWarnings("unchecked")
-        Collection<Object> list = (Collection<Object>) fieldInfo.getValue(destination);
+        Collection<Object> list = (Collection<Object>) fieldInfo.getValue(parameter.destination);
         if (list == null) {
           list = new ArrayList<Object>(1);
-          fieldInfo.setValue(destination, list);
+          fieldInfo.setValue(parameter.destination, list);
         }
         list.add(mapValue);
       } else {
         // field is a Map: store as a single element map
-        fieldInfo.setValue(destination, mapValue);
+        fieldInfo.setValue(parameter.destination, mapValue);
       }
     } else {
       // GenericXml: store as ArrayList of elements
-      GenericXml atom = (GenericXml) destination;
+      GenericXml atom = (GenericXml) parameter.destination;
       @SuppressWarnings("unchecked")
       Collection<Object> list = (Collection<Object>) atom.get(fieldName);
       if (list == null) {
@@ -524,26 +557,23 @@ public class Xml {
     return isStopped;
   }
 
-  private static boolean mapAsArrayOrCollection(final XmlPullParser parser,
-                                                final ArrayList<Type> context,
-                                                final Object destination,
-                                                final XmlNamespaceDictionary namespaceDictionary,
-                                                final CustomizeParser customizeParser,
+  private static boolean mapAsArrayOrCollection(final ParserParameter parameter,
                                                 final GenericXml genericXml,
                                                 final Map<String, Object> destinationMap,
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
-                                                boolean isStopped, final String fieldName,
+                                                final String fieldName,
                                                 final Type fieldType, final boolean isArray)
       throws XmlPullParserException, IOException {
     // TODO(yanivi): some duplicate code here; isolate into reusable methods
+    boolean isStopped = false;
     FieldInfo fieldInfo = FieldInfo.of(field);
     Object elementValue = null;
     Type subFieldType = isArray
         ? Types.getArrayComponentType(fieldType) : Types.getIterableParameter(fieldType);
     Class<?> rawArrayComponentType =
-        Types.getRawArrayComponentType(context, subFieldType);
-    subFieldType = Data.resolveWildcardTypeOrTypeVariable(context, subFieldType);
+        Types.getRawArrayComponentType(parameter.context, subFieldType);
+    subFieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, subFieldType);
     Class<?> subFieldClass =
         subFieldType instanceof Class<?> ? (Class<?>) subFieldType : null;
     if (subFieldType instanceof ParameterizedType) {
@@ -554,41 +584,41 @@ public class Xml {
     // Array mit Primitive oder Enum Type
     if (Data.isPrimitive(subFieldType) || isSubEnum) {
       // this could return null, but is not covered by a test!
-      elementValue = parseTextContentForElement(parser, context, false, subFieldType);
+      elementValue = parseTextContentForElement(parameter.parser, parameter.context, false, subFieldType);
     } else if (subFieldType == null || subFieldClass != null
         && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
       // returns never null
       elementValue = Data.newMapInstance(subFieldClass);
-      int contextSize = context.size();
+      int contextSize = parameter.context.size();
       if (subFieldType != null) {
-        context.add(subFieldType);
+        parameter.context.add(subFieldType);
       }
       Type subValueType = subFieldType != null
           && Map.class.isAssignableFrom(subFieldClass) ? Types.getMapValueParameter(
           subFieldType) : null;
-      subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
-      isStopped = parseElementInternal(new ParserParameter(parser,
-          context,
+      subValueType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, subValueType);
+      isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+          parameter.context,
           elementValue, // destination, never null!
           subValueType,
-          namespaceDictionary,
-          customizeParser));
+          parameter.namespaceDictionary,
+          parameter.customizeParser));
       if (subFieldType != null) {
-        context.remove(contextSize);
+        parameter.context.remove(contextSize);
       }
     } else {
       // never null.
       elementValue = Types.newInstance(rawArrayComponentType);
-      int contextSize = context.size();
-      context.add(fieldType);
+      int contextSize = parameter.context.size();
+      parameter.context.add(fieldType);
       // Not Yet Covered by Tests
-      isStopped = parseElementInternal(new ParserParameter(parser,
-          context,
+      isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+          parameter.context,
           elementValue, // destination; never null.
           null,
-          namespaceDictionary,
-          customizeParser));
-      context.remove(contextSize);
+          parameter.namespaceDictionary,
+          parameter.customizeParser));
+      parameter.context.remove(contextSize);
     }
     if (isArray) {
       // array field: add new element to array value map
@@ -598,16 +628,20 @@ public class Xml {
         arrayValueMap.put(field, rawArrayComponentType, elementValue);
       }
     } else {
-      mapToCollection(destination, genericXml, destinationMap, field, fieldName, fieldType,
+      mapToCollection(parameter.destination, genericXml, destinationMap, field, fieldName, fieldType,
           fieldInfo, elementValue);
     }
     return isStopped;
   }
 
-  private static void mapToCollection(final Object destination, final GenericXml genericXml,
-                                      final Map<String, Object> destinationMap, final Field field,
-                                      final String fieldName, final Type fieldType,
-                                      final FieldInfo fieldInfo, final Object elementValue) {
+  private static void mapToCollection(final Object destination,
+                                      final GenericXml genericXml,
+                                      final Map<String, Object> destinationMap,
+                                      final Field field,
+                                      final String fieldName,
+                                      final Type fieldType,
+                                      final FieldInfo fieldInfo,
+                                      final Object elementValue) {
     // collection: add new element to collection  NOT YET Covered!
     @SuppressWarnings("unchecked") Collection<Object> collectionValue = (Collection<Object>)
         (field == null ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
@@ -623,11 +657,7 @@ public class Xml {
     collectionValue.add(elementValue);
   }
 
-  private static boolean mapArrayWithClassType(final XmlPullParser parser,
-                                               final ArrayList<Type> context,
-                                               final Object destination,
-                                               final XmlNamespaceDictionary namespaceDictionary,
-                                               final CustomizeParser customizeParser,
+  private static boolean mapArrayWithClassType(final ParserParameter parameter,
                                                final GenericXml genericXml,
                                                final Map<String, Object> destinationMap,
                                                final Field field, final String fieldName,
@@ -636,27 +666,29 @@ public class Xml {
 
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
     Object value = Types.newInstance(fieldClass);
-    int contextSize = context.size();
-    context.add(fieldType);
-    isStopped = parseElementInternal(new ParserParameter(parser,
-        context,
+    int contextSize = parameter.context.size();
+    parameter.context.add(fieldType);
+    isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+        parameter.context,
         value, // destination; never null.
         null,
-        namespaceDictionary,
-        customizeParser));
-    context.remove(contextSize);
-    setValue(value, field, destination, genericXml, destinationMap, fieldName);
+        parameter.namespaceDictionary,
+        parameter.customizeParser));
+    parameter.context.remove(contextSize);
+    setValue(value, field, parameter.destination, genericXml, destinationMap, fieldName);
     return isStopped;
   }
 
   private static void initForGenericXml(final XmlPullParser parser,
                                         final XmlNamespaceDictionary namespaceDictionary,
                                         final GenericXml genericXml) {
-    genericXml.namespaceDictionary = namespaceDictionary;
-    String name = parser.getName();
-    String namespace = parser.getNamespace();
-    String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
-    genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
+    if(genericXml != null){
+      genericXml.namespaceDictionary = namespaceDictionary;
+      String name = parser.getName();
+      String namespace = parser.getNamespace();
+      String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
+      genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
+    }
   }
 
   private static String getFieldName(
