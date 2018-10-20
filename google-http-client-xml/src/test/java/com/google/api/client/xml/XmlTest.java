@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
@@ -384,19 +385,127 @@ public class XmlTest {
   private static final String SIMPLE_XML = "<any>test</any>";
 
   @Test
-  public void testParse_simpleType() throws Exception {
+  public void testParseSimpleTypeAsValueString() throws Exception {
     SimpleType xml = new SimpleType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SIMPLE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
+    assertEquals("test", xml.value);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
+  }
+
+  public static class SimpleTypeNumeric {
+    @Key("text()")
+    public int value;
+  }
+
+  private static final String SIMPLE_XML_NUMBERIC = "<any>1</any>";
+
+
+  @Test
+  public void testParseSimpleTypeAsValueInteger() throws Exception {
+    SimpleTypeNumeric xml = new SimpleTypeNumeric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML_NUMBERIC));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(1, xml.value);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">1</any>", out.toString());
+  }
+
+
+  private static final String START_WITH_TEXT = "<?xml version=\"1.0\"?>start_with_text</any>";
+
+  @Test
+  public void testWithTextFail() throws Exception {
+    SimpleType xml = new SimpleType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_TEXT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("only whitespace content allowed before start tag and not s (position: START_DOCUMENT seen <?xml version=\"1.0\"?>s... @1:22)", e.getMessage().trim());
+    }
+  }
+
+  private static final String START_MISSING_END_ELEMENT = "<?xml version=\"1.0\"?><any xmlns=\"\">missing_end_element";
+
+  @Test
+  public void testWithMissingEndElementFail() throws Exception {
+    SimpleType xml = new SimpleType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_MISSING_END_ELEMENT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("no more data available - expected end tag </any> to close start tag <any> from line 1, parser stopped on START_TAG seen ...<any " +
+          "xmlns=\"\">missing_end_element... @1:54", e.getMessage().trim());
+    }
+  }
+
+  private static final String START_WITH_END_ELEMENT = "<?xml version=\"1.0\"?></p><any xmlns=\"\">start_with_end_elemtn</any>";
+
+  @Test
+  public void testWithEndElementStarting() throws Exception {
+    SimpleType xml = new SimpleType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_END_ELEMENT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("expected start tag name and not / (position: START_DOCUMENT seen <?xml version=\"1.0\"?></... @1:23)", e.getMessage().trim());
+    }
+  }
+
+  private static final String START_WITH_END_ELEMENT_NESTED = "<?xml version=\"1.0\"?><any xmlns=\"\"></p>start_with_end_element_nested</any>";
+
+
+  @Test
+  public void testWithEndElementNested() throws Exception {
+    SimpleType xml = new SimpleType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_END_ELEMENT_NESTED));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("end tag name </p> must match start tag name <any> from line 1 (position: START_TAG seen ...<any xmlns=\"\"></p>... @1:39)", e.getMessage().trim());
+    }
+  }
+
+
+  @Test
+  public void testFailMappingOfDataType() throws Exception {
+    SimpleTypeNumeric xml = new SimpleTypeNumeric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("For input string: \"test\"", e.getMessage().trim());
+    }
   }
 
 }
