@@ -106,34 +106,6 @@ public class Xml {
   }
 
   /**
-   * Sets the value of a given field or map entry.
-   *
-   * @param value value
-   * @param field field to set or {@code null} if not applicable
-   * @param destination destination object or {@code null} for none
-   * @param genericXml generic XML or {@code null} if not applicable
-   * @param destinationMap destination map or {@code null} if not applicable
-   * @param name key name
-   */
-
-/*
-  private static void setValue(Object value,
-                               Field field,
-                               Object destination,
-                               GenericXml genericXml,
-                               Map<String, Object> destinationMap,
-                               String name) {
-    if (field != null) {
-      FieldInfo.setFieldValue(field, destination, value);
-    } else if (genericXml != null) {
-      genericXml.set(name, value);
-    } else {
-      destinationMap.put(name, value);
-    }
-  }
-*/
-
-  /**
    * Customizes the behavior of XML parsing. Subclasses may override any methods they need to
    * customize behavior.
    *
@@ -456,12 +428,19 @@ public class Xml {
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
         if (field != null) {
+          if(genericXml != null){
+            throw new RuntimeException("genericXml: parseAttributesFromElement - to be removed later");
+          }
           DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               field,
               parameter.valueType,
               parameter.context,
               parameter.destination);
+
         } else if (genericXml != null) {
+          if(destinationMap != null){
+            throw new RuntimeException("destinationMap: parseAttributesFromElement - to be removed later");
+          }
           GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               parameter.valueType,
               parameter.context,

@@ -31,6 +31,13 @@ public class GenericXmlParser extends Xml {
 
     }
   }
+  /**
+   * Sets the value of a given field or map entry.
+   *
+   * @param value value
+   * @param genericXml generic XML or {@code null} if not applicable
+   * @param name key name
+   */
 
   public static void setValue(GenericXml genericXml, String name, Object value){
     genericXml.set(name, value);

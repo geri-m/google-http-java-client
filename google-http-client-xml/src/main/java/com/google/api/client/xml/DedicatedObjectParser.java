@@ -36,6 +36,15 @@ public class DedicatedObjectParser extends Xml {
     }
   }
 
+  /**
+   * Sets the value of a given field or map entry.
+   *
+   * @param value value
+   * @param field field to set or {@code null} if not applicable
+   * @param destination destination object or {@code null} for none
+   */
+
+
   public static void setValue(Field field,
                               Object destination,
                               Object value){

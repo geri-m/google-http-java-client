@@ -33,6 +33,13 @@ public class DestinationMapParser extends Xml {
       setValue(destinationMap, name, value);
     }
   }
+  /**
+   * Sets the value of a given field or map entry.
+   *
+   * @param value value
+   * @param destinationMap destination map or {@code null} if not applicable
+   * @param name key name
+   */
 
   public static void setValue(Map<String, Object> destinationMap,String name,  Object value){
     destinationMap.put(name, value);

@@ -47,7 +47,7 @@ public class GenericXmlTest{
           + "xmlns=\"http://schemas.google.com/g/2005\" "
           + "xmlns:atom=\"http://www.w3.org/2005/Atom\" "
           + "gd:etag=\"abc\"><atom:title>One</atom:title></atom:entry>"
-          + "<entry gd:etag=\"def\"><title>Two</title></entry></feed>";
+          + "<entry gd:etag=\"def\"><title attribute=\"someattribute\">Two</title></entry></feed>";
 
 
   public static class AnyGenericType {
@@ -115,9 +115,11 @@ public class GenericXmlTest{
     testOne.add(singleElementOne);
     assertEquals("abc", foo.toArray(new ArrayMap[]{})[0].get("@gd:etag"));
     assertEquals(testOne, foo.toArray(new ArrayMap[]{})[0].get("title"));
-    ArrayMap<String, String> singleElementTwo =ArrayMap.of("text()", "Two");
+    ArrayMap<String, String> singleElementTwoAttrib =ArrayMap.of("@attribute", "someattribute", "text()", "Two");
+    //ArrayMap<String, String> singleElementTwoValue =ArrayMap.of();
     List<ArrayMap<String, String>> testTwo = new ArrayList<ArrayMap<String, String>>();
-    testTwo.add(singleElementTwo);
+    testTwo.add(singleElementTwoAttrib);
+    //testTwo.add(singleElementTwoValue);
     assertEquals("def", foo.toArray(new ArrayMap[]{})[1].get("@gd:etag"));
     assertEquals(testTwo, foo.toArray(new ArrayMap[]{})[1].get("title"));
   }
