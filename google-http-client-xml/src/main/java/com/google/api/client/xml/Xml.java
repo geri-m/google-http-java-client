@@ -318,14 +318,27 @@ public class Xml {
           // parse text content
           if (parameter.destination != null) {
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
-            parseAttributeOrTextContent(parameter.parser.getText(),
-                field,
-                parameter.valueType,
-                parameter.context,
-                parameter.destination,
-                genericXml,
-                destinationMap,
-                TEXT_CONTENT);
+
+            if (field != null) {
+              DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                  field,
+                  parameter.valueType,
+                  parameter.context,
+                  parameter.destination);
+            } else if (genericXml != null) {
+              GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                  field,
+                  parameter.valueType,
+                  parameter.context,
+                  genericXml, TEXT_CONTENT);
+            } else {
+              DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                  field,
+                  parameter.valueType,
+                  parameter.context,
+                  destinationMap,
+                  TEXT_CONTENT);
+            }
           }
           break;
         case XmlPullParser.START_TAG:
@@ -710,7 +723,8 @@ public class Xml {
     return result;
   }
 
-  private static Object parseValue(Type valueType, List<Type> context, String value) {
+  // independed to Type; Derived Objects make use of this method.
+  protected static Object parseValue(Type valueType, List<Type> context, String value) {
     valueType = Data.resolveWildcardTypeOrTypeVariable(context, valueType);
     if (valueType == Double.class || valueType == double.class) {
       if (value.equals("INF")) {
@@ -764,6 +778,6 @@ public class Xml {
     }
   }
 
-  private Xml() {
+  protected Xml() {
   }
 }
