@@ -233,4 +233,56 @@ public class GenericXmlTest{
     assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
   }
 
+  private static final String COLLECTION_TYPE_WITH_ENUM =
+      "<?xml version=\"1.0\"?><any xmlns=\"\">"
+          + "<rep>ENUM_1</rep><rep>ENUM_2</rep></any>";
+
+  public static class CollectionGenericType extends GenericXml {
+    @Key
+    public Collection<XmlEnumTest.AnyEnum> rep;
+  }
+
+  @Test
+  public void testParse_collectionTypeWithEnum() throws Exception {
+    CollectionGenericType xml = new CollectionGenericType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.size());
+    assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep.toArray(new XmlEnumTest.AnyEnum[]{})[0]);
+    assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep.toArray(new XmlEnumTest.AnyEnum[]{})[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
+  }
+
+  public static class ArrayGenericType extends GenericXml {
+    @Key
+    public XmlEnumTest.AnyEnum[] rep;
+  }
+
+  @Test
+  public void testParseArrayTypeWithEnum() throws Exception {
+    ArrayGenericType xml = new ArrayGenericType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.length);
+    assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep[0]);
+    assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
+  }
+
 }

@@ -153,11 +153,11 @@ public class XmlEnumTest {
     }
   }
 
-  private static final String COLLECTION_TYPE =
+  private static final String COLLECTION_TYPE_WITH_ENUM =
       "<?xml version=\"1.0\"?><any xmlns=\"\">"
           + "<rep>ENUM_1</rep><rep>ENUM_2</rep></any>";
 
-  public static class CollectionType extends GenericXml {
+  public static class CollectionType {
     @Key
     public Collection<AnyEnum> rep;
   }
@@ -166,7 +166,7 @@ public class XmlEnumTest {
   public void testParse_collectionTypeWithEnum() throws Exception {
     CollectionType xml = new CollectionType();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE));
+    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
@@ -178,8 +178,30 @@ public class XmlEnumTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE, out.toString());
+    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
   }
 
+  public static class ArrayType {
+    @Key
+    public AnyEnum[] rep;
+  }
 
+  @Test
+  public void testParseArrayTypeWithEnum() throws Exception {
+    ArrayType xml = new ArrayType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.length);
+    assertEquals(AnyEnum.ENUM_1, xml.rep[0]);
+    assertEquals(AnyEnum.ENUM_2, xml.rep[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
+  }
 }
