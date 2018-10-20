@@ -678,11 +678,14 @@ public class Xml {
         namespaceDictionary,
         customizeParser));
     context.remove(contextSize);
-    if(genericXml != null){
-      throw new RuntimeException("Generic is null");
-    }
-    //setValue(value, field, destination, genericXml, destinationMap, fieldName);
 
+    if(genericXml != null){
+      throw new RuntimeException(" This should not happen, as Array != Generic. Remove if problem");
+    }
+
+    if(destinationMap != null){
+      throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
+    }
 
     if (field != null) {
       DedicatedObjectParser.setValue(field, destination, value);

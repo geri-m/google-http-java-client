@@ -286,4 +286,31 @@ public class GenericXmlTest{
     assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
   }
 
+  public static class ArrayOfGenerics {
+    @Key
+    public GenericXml[] rep;
+  }
+
+  @Test
+  public void testParseArrayOfGenerics() throws Exception {
+    ArrayOfGenerics xml = new ArrayOfGenerics();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(2, xml.rep.length);
+    assertEquals("ENUM_1", ((Map.Entry<String, String>)(xml.rep[0]).entrySet().toArray()[0]).getValue());
+    assertEquals("text()", ((Map.Entry<String, String>)(xml.rep[0]).entrySet().toArray()[0]).getKey());
+    assertEquals("ENUM_2", ((Map.Entry<String, String>)(xml.rep[1]).entrySet().toArray()[0]).getValue());
+    assertEquals("text()", ((Map.Entry<String, String>)(xml.rep[1]).entrySet().toArray()[0]).getKey());
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
+  }
+
 }
