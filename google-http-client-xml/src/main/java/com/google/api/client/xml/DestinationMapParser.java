@@ -42,7 +42,7 @@ public class DestinationMapParser extends Xml {
     destinationMap.put(name, value);
   }
 
-  public static void parseAttributesFromElement(final ParserParameter parameter, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+  public static void parseAttributesFromElement(final ParserParameter parameter, final ClassInfo classInfo, final Map<String, Object> destinationMap) {
     if (parameter.destination != null) {
       int attributeCount = parameter.parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {
@@ -51,7 +51,7 @@ public class DestinationMapParser extends Xml {
         String attributeName = parameter.parser.getAttributeName(i);
         String attributeNamespace = parameter.parser.getAttributeNamespace(i);
         String attributeAlias = attributeNamespace.length() == 0 ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+        String fieldName = getFieldName(true, attributeAlias, attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
         if(field != null)
           throw new RuntimeException("parseAttributesFromElement (Destination Map) sanity check");

@@ -53,7 +53,7 @@ public class DedicatedObjectParser extends Xml {
         String attributeName = parameter.parser.getAttributeName(i);
         String attributeNamespace = parameter.parser.getAttributeNamespace(i);
         String attributeAlias = attributeNamespace.length() == 0 ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+        String fieldName = getFieldName(true, attributeAlias,  attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
         DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), field, parameter.valueType, parameter.context, parameter.destination);

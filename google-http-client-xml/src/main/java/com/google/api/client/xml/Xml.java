@@ -233,11 +233,11 @@ public class Xml {
 
     // if we have a dedicated destination
     if (destinationMap != null) {
-      DestinationMapParser.parseAttributesFromElement(parameter, destinationMap, classInfo);
+      DestinationMapParser.parseAttributesFromElement(parameter, classInfo, destinationMap);
     } else if (genericXml != null) {
       // if we have a generic XML, set the namespace
       GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-      GenericXmlParser.parseAttributesFromElement(parameter, genericXml, classInfo);
+      GenericXmlParser.parseAttributesFromElement(parameter, classInfo, genericXml);
     } else {
       DedicatedObjectParser.parseAttributesFromElement(parameter, classInfo);
     }
@@ -308,7 +308,7 @@ public class Xml {
             String alias = parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
 
             //  get the "real" field name of the
-            String fieldName = getFieldName(false, alias, namespace, parameter.parser.getName());
+            String fieldName = getFieldName(false, alias,  parameter.parser.getName());
 
             // fetch the field from the classInfo
             field = classInfo == null ? null : classInfo.getField(fieldName);
@@ -633,9 +633,10 @@ public class Xml {
     return isStopped;
   }
 
+  // -----------------------------------------------------------------
 
   protected static String getFieldName(
-      boolean isAttribute, String alias, String namespace, String name) {
+      boolean isAttribute, String alias, String name) {
     if (!isAttribute && alias.length() == 0) {
       return name;
     }
