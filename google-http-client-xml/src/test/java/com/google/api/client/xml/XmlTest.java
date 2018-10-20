@@ -406,14 +406,13 @@ public class XmlTest {
     public int value;
   }
 
-  private static final String SIMPLE_XML_NUMBERIC = "<any>1</any>";
-
+  private static final String SIMPLE_XML_NUMERIC = "<any>1</any>";
 
   @Test
   public void testParseSimpleTypeAsValueInteger() throws Exception {
     SimpleTypeNumeric xml = new SimpleTypeNumeric();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(SIMPLE_XML_NUMBERIC));
+    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
