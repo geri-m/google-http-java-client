@@ -34,6 +34,7 @@ import org.xmlpull.v1.XmlSerializer;
  * Tests {@link GenericXml}.
  *
  * @author Yaniv Inbar
+ * @author Gerald Madlmayr
  */
 public class GenericXmlTest{
 

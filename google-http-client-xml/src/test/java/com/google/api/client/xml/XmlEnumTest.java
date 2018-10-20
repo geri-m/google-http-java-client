@@ -13,10 +13,14 @@ import org.xmlpull.v1.XmlSerializer;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
 
-
+/**
+ * Tests {@link Xml}.
+ *
+ * @author Gerald Madlmayr
+ */
 public class XmlEnumTest {
 
-    public enum AnyEnum {
+  public enum AnyEnum {
     @Value ENUM_1,
     @Value ENUM_2
   }

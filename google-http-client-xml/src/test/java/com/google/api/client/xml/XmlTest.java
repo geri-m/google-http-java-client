@@ -34,6 +34,7 @@ import org.xmlpull.v1.XmlSerializer;
  * Tests {@link Xml}.
  *
  * @author Yaniv Inbar
+ * @author Gerald Madlmayr
  */
 public class XmlTest {
 
@@ -540,4 +541,65 @@ public class XmlTest {
     assertEquals(INF_TEST, out.toString());
   }
 
+
+  private static class AllType {
+    @Key
+    private int integer;
+    @Key
+    private String str;
+    @Key
+    private GenericXml genericXml;
+    @Key
+    private XmlEnumTest.AnyEnum anyEnum;
+    @Key
+    private String[] stringArray;
+    @Key
+    private Collection<Integer> integerCollection;
+  }
+
+  private static final String ALL_TYPE = "<?xml version=\"1.0\"?><any xmlns=\"\">"
+      +"<integer/><str/><genericXml/><anyEnum/><stringArray/><integerCollection/>"
+      +"</any>";
+
+  @Test
+  public void testParseEmptyElements() throws Exception {
+    AllType xml = new AllType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ALL_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(0, xml.integer);
+    assertNotNull(xml.genericXml);
+    assertNotNull(xml.integerCollection);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\"><genericXml /><integer>0</integer></any>", out.toString());
+  }
+
+  @Test
+  public void testParseIncorrectMapping() throws Exception {
+    AnyType xml = new AnyType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ALL_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertNull(xml.elem);
+    assertNull(xml.value);
+    assertNull(xml.rep);
+    assertNull(xml.rep);
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\" />", out.toString());
+  }
+
 }
+
