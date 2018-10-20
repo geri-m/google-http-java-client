@@ -3,11 +3,12 @@ package com.google.api.client.xml;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.List;
+import com.google.api.client.util.ClassInfo;
 import com.google.api.client.util.FieldInfo;
 
 public class DedicatedObjectParser extends Xml {
 
-  public DedicatedObjectParser(){
+  public DedicatedObjectParser() {
     super();
   }
 
@@ -16,19 +17,13 @@ public class DedicatedObjectParser extends Xml {
    * Parses the string value of an attribute value or text content.
    *
    * @param stringValue string value
-   * @param field field to set or {@code null} if not applicable
-   * @param valueType value type (class, parameterized type, or generic array type) or {@code null}
-   *        for none
-   * @param context context list, going from least specific to most specific type context, for
-   *        example container class and its field
+   * @param field       field to set or {@code null} if not applicable
+   * @param valueType   value type (class, parameterized type, or generic array type) or {@code null} for none
+   * @param context     context list, going from least specific to most specific type context, for example container class and its field
    * @param destination destination object or {@code null} for none
    */
 
-  public static void parseAttributeOrTextContent(String stringValue,
-                                                 Field field,
-                                                 Type valueType,
-                                                 List<Type> context,
-                                                 Object destination) {
+  public static void parseAttributeOrTextContent(String stringValue, Field field, Type valueType, List<Type> context, Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
       Object value = parseValue(valueType, context, stringValue);
@@ -39,16 +34,30 @@ public class DedicatedObjectParser extends Xml {
   /**
    * Sets the value of a given field or map entry.
    *
-   * @param value value
-   * @param field field to set or {@code null} if not applicable
+   * @param value       value
+   * @param field       field to set or {@code null} if not applicable
    * @param destination destination object or {@code null} for none
    */
 
 
-  public static void setValue(Field field,
-                              Object destination,
-                              Object value){
+  public static void setValue(Field field, Object destination, Object value) {
     FieldInfo.setFieldValue(field, destination, value);
   }
 
+  public static void parseAttributesFromElement(final ParserParameter parameter, final ClassInfo classInfo) {
+    if (parameter.destination != null) {
+      int attributeCount = parameter.parser.getAttributeCount();
+      for (int i = 0; i < attributeCount; i++) {
+        // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
+        // You can't. Attribute names are unique per element. (?)
+        String attributeName = parameter.parser.getAttributeName(i);
+        String attributeNamespace = parameter.parser.getAttributeNamespace(i);
+        String attributeAlias = attributeNamespace.length() == 0 ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
+        Field field = classInfo == null ? null : classInfo.getField(fieldName);
+        parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+        DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), field, parameter.valueType, parameter.context, parameter.destination);
+      }
+    }
+  }
 }

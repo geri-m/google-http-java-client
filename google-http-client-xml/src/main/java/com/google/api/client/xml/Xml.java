@@ -168,7 +168,7 @@ public class Xml {
         customizeParser));
   }
 
-  private static class ParserParameter{
+  public static class ParserParameter{
 
     XmlPullParser parser;
     ArrayList<Type> context;
@@ -231,13 +231,16 @@ public class Xml {
     // parse the namespace for the current Element.
     parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
 
-    // if we have a generic XML, set the namespace
-    if(genericXml != null){
-      GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-    }
-
     // if we have a dedicated destination
-    parseAttributesFromElement(parameter, genericXml, destinationMap, classInfo);
+    if (destinationMap != null) {
+      DestinationMapParser.parseAttributesFromElement(parameter, destinationMap, classInfo);
+    } else if (genericXml != null) {
+      // if we have a generic XML, set the namespace
+      GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
+      GenericXmlParser.parseAttributesFromElement(parameter, genericXml, classInfo);
+    } else {
+      DedicatedObjectParser.parseAttributesFromElement(parameter, classInfo);
+    }
 
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(parameter.destination);
@@ -412,49 +415,6 @@ public class Xml {
     return isStopped;
   }
 
-  private static void parseAttributesFromElement(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
-    if (parameter.destination != null) {
-      int attributeCount = parameter.parser.getAttributeCount();
-      for (int i = 0; i < attributeCount; i++) {
-        // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
-        // You can't. Attribute names are unique per element. (?)
-        String attributeName = parameter.parser.getAttributeName(i);
-        String attributeNamespace = parameter.parser.getAttributeNamespace(i);
-        String attributeAlias = attributeNamespace.length() == 0
-            ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
-        String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
-        Field field = classInfo == null ? null : classInfo.getField(fieldName);
-
-        parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-
-        if (field != null) {
-          if(genericXml != null){
-            throw new RuntimeException("genericXml: parseAttributesFromElement - to be removed later");
-          }
-          DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-              field,
-              parameter.valueType,
-              parameter.context,
-              parameter.destination);
-
-        } else if (genericXml != null) {
-          if(destinationMap != null){
-            throw new RuntimeException("destinationMap: parseAttributesFromElement - to be removed later");
-          }
-          GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-              parameter.valueType,
-              parameter.context,
-              genericXml, fieldName);
-        } else {
-          DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-              parameter.valueType,
-              parameter.context,
-              destinationMap,
-              fieldName);
-        }
-      }
-    }
-  }
 
   private static boolean mapAsClassOrObjectType(final XmlPullParser parser,
                                                 final ArrayList<Type> context,
@@ -674,7 +634,7 @@ public class Xml {
   }
 
 
-  private static String getFieldName(
+  protected static String getFieldName(
       boolean isAttribute, String alias, String namespace, String name) {
     if (!isAttribute && alias.length() == 0) {
       return name;
