@@ -192,4 +192,45 @@ public class GenericXmlTest{
     assertEquals(ARRAY_TYPE_WITH_CLASS_TYPE, out.toString());
   }
 
+  private static final String SIMPLE_XML_NUMERIC = "<any xmlns=\"\">1</any>";
+
+  @Test
+  public void testParseSimpleInteger() throws Exception {
+    GenericXml xml = new GenericXml();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals ("text()", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getKey());
+    assertEquals ("1", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getValue());
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">1</any>", out.toString());
+  }
+
+
+  private static final String SIMPLE_XML = "<any xmlns=\"\">test</any>";
+
+  @Test
+  public void testParseSimpleString() throws Exception {
+    GenericXml xml = new GenericXml();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals ("text()", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getKey());
+    assertEquals ("test", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getValue());
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
+  }
+
 }
