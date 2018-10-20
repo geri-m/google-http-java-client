@@ -11,15 +11,35 @@ public class DedicatedObjectParser extends Xml {
     super();
   }
 
+
+  /**
+   * Parses the string value of an attribute value or text content.
+   *
+   * @param stringValue string value
+   * @param field field to set or {@code null} if not applicable
+   * @param valueType value type (class, parameterized type, or generic array type) or {@code null}
+   *        for none
+   * @param context context list, going from least specific to most specific type context, for
+   *        example container class and its field
+   * @param destination destination object or {@code null} for none
+   */
+
   public static void parseAttributeOrTextContentDerived(String stringValue,
                                                   Field field,
                                                   Type valueType,
                                                   List<Type> context,
                                                   Object destination) {
+    // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
-      valueType = field == null ? valueType : field.getGenericType();
       Object value = parseValue(valueType, context, stringValue);
-      FieldInfo.setFieldValue(field, destination, value);
+      setValue(field, destination, value);
     }
   }
+
+  public static void setValue(Field field,
+                              Object destination,
+                              Object value){
+    FieldInfo.setFieldValue(field, destination, value);
+  }
+
 }

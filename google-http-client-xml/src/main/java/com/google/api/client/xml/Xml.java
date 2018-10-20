@@ -106,35 +106,6 @@ public class Xml {
   }
 
   /**
-   * Parses the string value of an attribute value or text content.
-   *
-   * @param stringValue string value
-   * @param field field to set or {@code null} if not applicable
-   * @param valueType value type (class, parameterized type, or generic array type) or {@code null}
-   *        for none
-   * @param context context list, going from least specific to most specific type context, for
-   *        example container class and its field
-   * @param destination destination object or {@code null} for none
-   * @param genericXml generic XML or {@code null} if not applicable
-   * @param destinationMap destination map or {@code null} if not applicable
-   * @param name key name
-   */
-  private static void parseAttributeOrTextContent(String stringValue,
-                                                  Field field,
-                                                  Type valueType,
-                                                  List<Type> context,
-                                                  Object destination,
-                                                  GenericXml genericXml,
-                                                  Map<String, Object> destinationMap,
-                                                  String name) {
-    if (field != null || genericXml != null || destinationMap != null) {
-      valueType = field == null ? valueType : field.getGenericType();
-      Object value = parseValue(valueType, context, stringValue);
-      setValue(value, field, destination, genericXml, destinationMap, name);
-    }
-  }
-
-  /**
    * Sets the value of a given field or map entry.
    *
    * @param value value
@@ -144,6 +115,8 @@ public class Xml {
    * @param destinationMap destination map or {@code null} if not applicable
    * @param name key name
    */
+
+/*
   private static void setValue(Object value,
                                Field field,
                                Object destination,
@@ -158,6 +131,7 @@ public class Xml {
       destinationMap.put(name, value);
     }
   }
+*/
 
   /**
    * Customizes the behavior of XML parsing. Subclasses may override any methods they need to
@@ -319,6 +293,8 @@ public class Xml {
           if (parameter.destination != null) {
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
 
+            parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+
             if (field != null) {
               DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
                   field,
@@ -327,13 +303,11 @@ public class Xml {
                   parameter.destination);
             } else if (genericXml != null) {
               GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
-                  field,
                   parameter.valueType,
                   parameter.context,
                   genericXml, TEXT_CONTENT);
             } else {
               DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
-                  field,
                   parameter.valueType,
                   parameter.context,
                   destinationMap,
@@ -394,14 +368,28 @@ public class Xml {
                     break;
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
-                      parseAttributeOrTextContent(parameter.parser.getText(),
-                          field,
-                          parameter.valueType,
-                          parameter.context,
-                          parameter.destination,
-                          genericXml,
-                          destinationMap,
-                          fieldName);
+
+                      parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+
+                      if (field != null) {
+                        DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                            field,
+                            parameter.valueType,
+                            parameter.context,
+                            parameter.destination);
+                      } else if (genericXml != null) {
+                        GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                            parameter.valueType,
+                            parameter.context,
+                            genericXml, fieldName);
+                      } else {
+                        DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                            parameter.valueType,
+                            parameter.context,
+                            destinationMap,
+                            fieldName);
+                      }
+
                     }
                     break;
                   // Never reached while Testing
@@ -464,14 +452,27 @@ public class Xml {
             ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
         String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-            field,
-            parameter.valueType,
-            parameter.context,
-            parameter.destination,
-            genericXml,
-            destinationMap,
-            fieldName);
+
+        parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+
+        if (field != null) {
+          DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+              field,
+              parameter.valueType,
+              parameter.context,
+              parameter.destination);
+        } else if (genericXml != null) {
+          GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+              parameter.valueType,
+              parameter.context,
+              genericXml, fieldName);
+        } else {
+          DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+              parameter.valueType,
+              parameter.context,
+              destinationMap,
+              fieldName);
+        }
       }
     }
   }
@@ -632,12 +633,25 @@ public class Xml {
         (field == null ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
     if (collectionValue == null) {
       collectionValue = Data.newCollectionInstance(fieldType);
+
+      /*
       setValue(collectionValue,
           field,
           destination,
           genericXml,
           destinationMap,
           fieldName);
+          */
+
+
+      if (field != null) {
+        DedicatedObjectParser.setValue(field, destination, collectionValue);
+      } else if (genericXml != null) {
+        GenericXmlParser.setValue(genericXml, fieldName, collectionValue);
+      } else {
+        DestinationMapParser.setValue(destinationMap, fieldName, collectionValue);
+      }
+
     }
     collectionValue.add(elementValue);
   }
@@ -664,7 +678,21 @@ public class Xml {
         namespaceDictionary,
         customizeParser));
     context.remove(contextSize);
-    setValue(value, field, destination, genericXml, destinationMap, fieldName);
+    if(genericXml != null){
+      throw new RuntimeException("Generic is null");
+    }
+    //setValue(value, field, destination, genericXml, destinationMap, fieldName);
+
+
+    if (field != null) {
+      DedicatedObjectParser.setValue(field, destination, value);
+    } else if (genericXml != null) {
+      GenericXmlParser.setValue(genericXml, fieldName, value);
+    } else {
+      DestinationMapParser.setValue(destinationMap, fieldName, value);
+    }
+
+
     return isStopped;
   }
 
