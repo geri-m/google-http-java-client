@@ -2,6 +2,7 @@ package com.google.api.client.xml;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import org.xmlpull.v1.XmlPullParser;
 
 public class GenericXmlParser extends Xml {
 
@@ -19,11 +20,11 @@ public class GenericXmlParser extends Xml {
    *        example container class and its field
    * @param name key name
    */
-  public static void parseAttributeOrTextContentDerived(String stringValue,
-                                                  Type valueType,
-                                                  List<Type> context,
-                                                  GenericXml genericXml,
-                                                  String name) {
+  public static void parseAttributeOrTextContent(String stringValue,
+                                                 Type valueType,
+                                                 List<Type> context,
+                                                 GenericXml genericXml,
+                                                 String name) {
     if (genericXml != null && name != null) {
       Object value = parseValue(valueType, context, stringValue);
       setValue(genericXml, name, value);
@@ -33,6 +34,17 @@ public class GenericXmlParser extends Xml {
 
   public static void setValue(GenericXml genericXml, String name, Object value){
     genericXml.set(name, value);
+  }
+
+
+  public static void initForGenericXml(final XmlPullParser parser,
+                                        final XmlNamespaceDictionary namespaceDictionary,
+                                        final GenericXml genericXml) {
+    genericXml.namespaceDictionary = namespaceDictionary;
+    String name = parser.getName();
+    String namespace = parser.getNamespace();
+    String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
+    genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
   }
 
 

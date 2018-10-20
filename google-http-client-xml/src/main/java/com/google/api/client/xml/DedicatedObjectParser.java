@@ -24,11 +24,11 @@ public class DedicatedObjectParser extends Xml {
    * @param destination destination object or {@code null} for none
    */
 
-  public static void parseAttributeOrTextContentDerived(String stringValue,
-                                                  Field field,
-                                                  Type valueType,
-                                                  List<Type> context,
-                                                  Object destination) {
+  public static void parseAttributeOrTextContent(String stringValue,
+                                                 Field field,
+                                                 Type valueType,
+                                                 List<Type> context,
+                                                 Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
       Object value = parseValue(valueType, context, stringValue);

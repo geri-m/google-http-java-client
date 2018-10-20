@@ -242,7 +242,6 @@ public class Xml {
     // if the destination is a GenericXML then we are going the set the generic XML.
     GenericXml genericXml = parameter.destination instanceof GenericXml ? (GenericXml) parameter.destination : null;
 
-
     // if the destination is GenericXML and the destination is a Map, create a destination Map.
     @SuppressWarnings("unchecked")
     Map<String, Object> destinationMap =
@@ -261,8 +260,9 @@ public class Xml {
     parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
 
     // if we have a generic XML, set the namespace
-    initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-
+    if(genericXml != null){
+      GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
+    }
 
     // if we have a dedicated destination
     parseAttributesFromElement(parameter, genericXml, destinationMap, classInfo);
@@ -296,18 +296,18 @@ public class Xml {
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
             if (field != null) {
-              DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+              DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(),
                   field,
                   parameter.valueType,
                   parameter.context,
                   parameter.destination);
             } else if (genericXml != null) {
-              GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+              GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
                   parameter.valueType,
                   parameter.context,
                   genericXml, TEXT_CONTENT);
             } else {
-              DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+              DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getText(),
                   parameter.valueType,
                   parameter.context,
                   destinationMap,
@@ -372,18 +372,18 @@ public class Xml {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
                       if (field != null) {
-                        DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                        DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(),
                             field,
                             parameter.valueType,
                             parameter.context,
                             parameter.destination);
                       } else if (genericXml != null) {
-                        GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                        GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
                             parameter.context,
                             genericXml, fieldName);
                       } else {
-                        DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getText(),
+                        DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
                             parameter.context,
                             destinationMap,
@@ -456,18 +456,18 @@ public class Xml {
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
         if (field != null) {
-          DedicatedObjectParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+          DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               field,
               parameter.valueType,
               parameter.context,
               parameter.destination);
         } else if (genericXml != null) {
-          GenericXmlParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+          GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               parameter.valueType,
               parameter.context,
               genericXml, fieldName);
         } else {
-          DestinationMapParser.parseAttributeOrTextContentDerived(parameter.parser.getAttributeValue(i),
+          DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               parameter.valueType,
               parameter.context,
               destinationMap,
@@ -629,20 +629,15 @@ public class Xml {
                                       final String fieldName, final Type fieldType,
                                       final FieldInfo fieldInfo, final Object elementValue) {
     // collection: add new element to collection  NOT YET Covered!
-    @SuppressWarnings("unchecked") Collection<Object> collectionValue = (Collection<Object>)
+    @SuppressWarnings("unchecked")
+    Collection<Object> collectionValue = (Collection<Object>)
         (field == null ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
     if (collectionValue == null) {
       collectionValue = Data.newCollectionInstance(fieldType);
 
-      /*
-      setValue(collectionValue,
-          field,
-          destination,
-          genericXml,
-          destinationMap,
-          fieldName);
-          */
-
+      if(destinationMap != null){
+        throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
+      }
 
       if (field != null) {
         DedicatedObjectParser.setValue(field, destination, collectionValue);
@@ -699,17 +694,6 @@ public class Xml {
     return isStopped;
   }
 
-  private static void initForGenericXml(final XmlPullParser parser,
-                                        final XmlNamespaceDictionary namespaceDictionary,
-                                        final GenericXml genericXml) {
-    if (genericXml != null) {
-      genericXml.namespaceDictionary = namespaceDictionary;
-      String name = parser.getName();
-      String namespace = parser.getNamespace();
-      String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
-      genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
-    }
-  }
 
   private static String getFieldName(
       boolean isAttribute, String alias, String namespace, String name) {

@@ -23,11 +23,11 @@ public class DestinationMapParser extends Xml {
    * @param name key name
    */
 
-  public static void parseAttributeOrTextContentDerived(String stringValue,
-                                                  Type valueType,
-                                                  List<Type> context,
-                                                  Map<String, Object> destinationMap,
-                                                  String name) {
+  public static void parseAttributeOrTextContent(String stringValue,
+                                                 Type valueType,
+                                                 List<Type> context,
+                                                 Map<String, Object> destinationMap,
+                                                 String name) {
     if (destinationMap != null && name != null) {
       Object value = parseValue(valueType, context, stringValue);
       setValue(destinationMap, name, value);
