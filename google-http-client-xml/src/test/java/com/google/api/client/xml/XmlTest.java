@@ -507,4 +507,37 @@ public class XmlTest {
     }
   }
 
+  private static class AnyTypeInf {
+    @Key
+    private double dblInfNeg;
+    @Key
+    private double dblInfPos;
+    @Key
+    private float fltInfNeg;
+    @Key
+    private float fltInfPos;
+  }
+
+  private static final String INF_TEST = "<?xml version=\"1.0\"?><any xmlns=\"\"><dblInfNeg>-INF</dblInfNeg><dblInfPos>INF</dblInfPos><fltInfNeg>-INF</fltInfNeg><fltInfPos>INF</fltInfPos></any>";
+
+  @Test
+  public void testParseInfiniteValues() throws Exception {
+    AnyTypeInf xml = new AnyTypeInf();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(INF_TEST));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(Double.NEGATIVE_INFINITY, xml.dblInfNeg, 0.0001);
+    assertEquals(Double.POSITIVE_INFINITY, xml.dblInfPos, 0.0001);
+    assertEquals(Float.NEGATIVE_INFINITY, xml.fltInfNeg, 0.0001);
+    assertEquals(Float.POSITIVE_INFINITY, xml.dblInfPos, 0.0001);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(INF_TEST, out.toString());
+  }
+
 }
