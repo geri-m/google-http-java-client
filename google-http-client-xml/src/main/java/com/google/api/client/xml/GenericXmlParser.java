@@ -73,7 +73,7 @@ public class GenericXmlParser extends Xml {
 
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
-          GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               parameter.valueType,
               parameter.context,
               genericXml, fieldName);

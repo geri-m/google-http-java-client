@@ -272,9 +272,8 @@ public class Xml {
 
             if (field != null) {
               DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  field,
-                  parameter.valueType,
                   parameter.context,
+                  parameter.valueType, field,
                   parameter.destination);
             } else if (genericXml != null) {
               GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
@@ -299,7 +298,7 @@ public class Xml {
           }
           // not sure how the case looks like, when this happens.
           if (parameter.destination == null) {
-            // we ignore the result, as we can't map it to anything. we parse for sanity?
+            // we ignore the result, as we can't map it to anything. we parse for sanity
             parseTextContentForElement(parameter.parser, parameter.context, true, null);
           } else {
             // element
@@ -347,11 +346,7 @@ public class Xml {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
                       if (field != null) {
-                        DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(),
-                            field,
-                            parameter.valueType,
-                            parameter.context,
-                            parameter.destination);
+                        DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(), parameter.context, parameter.valueType, field, parameter.destination);
                       } else if (genericXml != null) {
                         GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
@@ -379,7 +374,7 @@ public class Xml {
                   parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, genericXml, destinationMap, field, arrayValueMap, isStopped,
+                  parameter.customizeParser, genericXml, destinationMap, field, arrayValueMap,
                   fieldName, fieldType, isArray);
             } else {
               isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
@@ -443,6 +438,8 @@ public class Xml {
     if (fieldType != null) {
       context.remove(contextSize);
     }
+
+    // Now do the Mapping here.
     if (destinationMap != null) {
       // map but not GenericXml: store as ArrayList of elements
       @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>)
@@ -470,6 +467,10 @@ public class Xml {
       }
     } else {
       // GenericXml: store as ArrayList of elements
+      if(!(destination instanceof  GenericXml)){
+        throw new RuntimeException("Desintation is not a Gernic XML");
+      }
+
       GenericXml atom = (GenericXml) destination;
       @SuppressWarnings("unchecked")
       Collection<Object> list = (Collection<Object>) atom.get(fieldName);
@@ -492,9 +493,10 @@ public class Xml {
                                                 final Map<String, Object> destinationMap,
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
-                                                boolean isStopped, final String fieldName,
+                                                final String fieldName,
                                                 final Type fieldType, final boolean isArray)
       throws XmlPullParserException, IOException {
+    boolean isStopped = false;
     // TODO(yanivi): some duplicate code here; isolate into reusable methods
     FieldInfo fieldInfo = FieldInfo.of(field);
     Object elementValue = null;
@@ -512,7 +514,7 @@ public class Xml {
 
     // Array mit Primitive oder Enum Type
     if (Data.isPrimitive(subFieldType) || isSubEnum) {
-      // this could return null, but is not covered by a test!
+      // can be null
       elementValue = parseTextContentForElement(parser, context, false, subFieldType);
     } else if (subFieldType == null || subFieldClass != null
         && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
@@ -735,4 +737,5 @@ public class Xml {
 
   protected Xml() {
   }
+
 }

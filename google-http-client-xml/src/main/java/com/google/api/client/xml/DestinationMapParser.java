@@ -56,7 +56,7 @@ public class DestinationMapParser extends Xml {
         if(field != null)
           throw new RuntimeException("parseAttributesFromElement (Destination Map) sanity check");
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, destinationMap, fieldName);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, destinationMap, fieldName);
       }
     }
   }
