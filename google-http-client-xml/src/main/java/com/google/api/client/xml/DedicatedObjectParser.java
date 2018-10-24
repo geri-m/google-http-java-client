@@ -3,13 +3,14 @@ package com.google.api.client.xml;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Map;
 import com.google.api.client.util.ClassInfo;
 import com.google.api.client.util.FieldInfo;
 
 public class DedicatedObjectParser extends Xml {
 
-  public DedicatedObjectParser() {
-    super();
+  public DedicatedObjectParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+    super(parameter, genericXml, destinationMap, classInfo);
   }
 
 
@@ -43,7 +44,7 @@ public class DedicatedObjectParser extends Xml {
     FieldInfo.setFieldValue(field, destination, value);
   }
 
-  public static void parseAttributesFromElement(final ParserParameter parameter, final ClassInfo classInfo) {
+  public  void parseAttributesFromElement() {
     if (parameter.destination != null) {
       int attributeCount = parameter.parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {

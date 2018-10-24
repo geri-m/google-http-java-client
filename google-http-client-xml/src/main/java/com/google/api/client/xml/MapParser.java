@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 import com.google.api.client.util.ClassInfo;
 
-public class DestinationMapParser extends Xml {
+public class MapParser extends Xml {
 
-  public DestinationMapParser() {
-    super();
+  public MapParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+    super(parameter, genericXml, destinationMap, classInfo);
   }
 
 
@@ -42,7 +42,7 @@ public class DestinationMapParser extends Xml {
     destinationMap.put(name, value);
   }
 
-  public static void parseAttributesFromElement(final ParserParameter parameter, final ClassInfo classInfo, final Map<String, Object> destinationMap) {
+  public  void parseAttributesFromElement() {
     if (parameter.destination != null) {
       int attributeCount = parameter.parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {

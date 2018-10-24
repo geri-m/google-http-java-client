@@ -44,7 +44,23 @@ import org.xmlpull.v1.XmlSerializer;
  * @author Yaniv Inbar
  */
 @Beta
-public class Xml {
+public abstract class Xml {
+
+
+  protected final ParserParameter parameter;
+  protected final GenericXml genericXml;
+  protected final Map<String, Object> destinationMap;
+  protected final ClassInfo classInfo;
+
+  protected Xml(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+    this.parameter = parameter;
+    this.genericXml = genericXml;
+    this.destinationMap = destinationMap;
+    this.classInfo = classInfo;
+  }
+
+  public abstract void parseAttributesFromElement();
+
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
    *
@@ -231,16 +247,22 @@ public class Xml {
     // parse the namespace for the current Element.
     parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
 
+    final Xml parser;
     // if we have a dedicated destination
     if (destinationMap != null) {
-      DestinationMapParser.parseAttributesFromElement(parameter, classInfo, destinationMap);
+      parser = new MapParser(parameter, genericXml, destinationMap, classInfo);
+      // MapParser.parseAttributesFromElement(parameter, classInfo, destinationMap);
     } else if (genericXml != null) {
       // if we have a generic XML, set the namespace
+      parser = new GenericXmlParser(parameter, genericXml, destinationMap, classInfo);
       GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-      GenericXmlParser.parseAttributesFromElement(parameter, classInfo, genericXml);
+      // GenericXmlParser.parseAttributesFromElement(parameter, classInfo, genericXml);
     } else {
-      DedicatedObjectParser.parseAttributesFromElement(parameter, classInfo);
+      parser = new DedicatedObjectParser(parameter, genericXml, destinationMap, classInfo);
+      // DedicatedObjectParser.parseAttributesFromElement(parameter, classInfo);
     }
+
+    parser.parseAttributesFromElement();
 
     Field field;
     ArrayValueMap arrayValueMap = new ArrayValueMap(parameter.destination);
@@ -281,7 +303,7 @@ public class Xml {
                   parameter.context,
                   genericXml, TEXT_CONTENT);
             } else {
-              DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getText(),
+              MapParser.parseAttributeOrTextContent(parameter.parser.getText(),
                   parameter.valueType,
                   parameter.context,
                   destinationMap,
@@ -353,7 +375,7 @@ public class Xml {
                             parameter.context,
                             genericXml, fieldName);
                       } else {
-                        DestinationMapParser.parseAttributeOrTextContent(parameter.parser.getText(),
+                        MapParser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
                             parameter.context,
                             destinationMap,
@@ -585,7 +607,7 @@ public class Xml {
       } else if (genericXml != null) {
         GenericXmlParser.setValue(genericXml, fieldName, collectionValue);
       } else {
-        DestinationMapParser.setValue(destinationMap, fieldName, collectionValue);
+        MapParser.setValue(destinationMap, fieldName, collectionValue);
       }
 
     }
@@ -628,7 +650,7 @@ public class Xml {
     } else if (genericXml != null) {
       GenericXmlParser.setValue(genericXml, fieldName, value);
     } else {
-      DestinationMapParser.setValue(destinationMap, fieldName, value);
+      MapParser.setValue(destinationMap, fieldName, value);
     }
 
 
@@ -733,9 +755,6 @@ public class Xml {
         namespaceDictionary.set(alias, namespace);
       }
     }
-  }
-
-  protected Xml() {
   }
 
 }

@@ -3,14 +3,15 @@ package com.google.api.client.xml;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Map;
 import org.xmlpull.v1.XmlPullParser;
 import com.google.api.client.util.ClassInfo;
 
 public class GenericXmlParser extends Xml {
 
 
-  public GenericXmlParser(){
-    super();
+  public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo){
+    super(parameter, genericXml, destinationMap, classInfo);
   }
   /**
    * Parses the string value of an attribute value or text content.
@@ -56,7 +57,7 @@ public class GenericXmlParser extends Xml {
     genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
   }
 
-  public static void parseAttributesFromElement(final ParserParameter parameter, final ClassInfo classInfo, final GenericXml genericXml) {
+  public  void parseAttributesFromElement() {
     if (parameter.destination != null) {
       int attributeCount = parameter.parser.getAttributeCount();
       for (int i = 0; i < attributeCount; i++) {
