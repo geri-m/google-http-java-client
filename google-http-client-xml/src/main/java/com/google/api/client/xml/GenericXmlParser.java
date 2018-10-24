@@ -12,6 +12,7 @@ public class GenericXmlParser extends Xml {
 
   public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo){
     super(parameter, genericXml, destinationMap, classInfo);
+    initForGenericXml();
   }
   /**
    * Parses the string value of an attribute value or text content.
@@ -47,13 +48,11 @@ public class GenericXmlParser extends Xml {
   }
 
 
-  public static void initForGenericXml(final XmlPullParser parser,
-                                        final XmlNamespaceDictionary namespaceDictionary,
-                                        final GenericXml genericXml) {
-    genericXml.namespaceDictionary = namespaceDictionary;
-    String name = parser.getName();
-    String namespace = parser.getNamespace();
-    String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
+  private  void initForGenericXml() {
+    genericXml.namespaceDictionary = parameter.namespaceDictionary;
+    String name =  parameter.parser.getName();
+    String namespace =  parameter.parser.getNamespace();
+    String alias =  parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
     genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
   }
 

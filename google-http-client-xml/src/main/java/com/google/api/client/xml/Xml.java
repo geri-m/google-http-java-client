@@ -249,17 +249,13 @@ public abstract class Xml {
 
     final Xml parser;
     // if we have a dedicated destination
-    if (destinationMap != null) {
+    if (!(parameter.destination instanceof GenericXml) &&  parameter.destination instanceof Map<?, ?>) {
       parser = new MapParser(parameter, genericXml, destinationMap, classInfo);
-      // MapParser.parseAttributesFromElement(parameter, classInfo, destinationMap);
-    } else if (genericXml != null) {
+    } else if (parameter.destination instanceof GenericXml) {
       // if we have a generic XML, set the namespace
       parser = new GenericXmlParser(parameter, genericXml, destinationMap, classInfo);
-      GenericXmlParser.initForGenericXml(parameter.parser, parameter.namespaceDictionary, genericXml);
-      // GenericXmlParser.parseAttributesFromElement(parameter, classInfo, genericXml);
     } else {
       parser = new DedicatedObjectParser(parameter, genericXml, destinationMap, classInfo);
-      // DedicatedObjectParser.parseAttributesFromElement(parameter, classInfo);
     }
 
     parser.parseAttributesFromElement();
