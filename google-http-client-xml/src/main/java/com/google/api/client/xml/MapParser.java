@@ -32,7 +32,7 @@ public class MapParser extends Xml<Map<String,Object>> {
    */
 
   @Override
-  public void parseAttributeOrTextContent(String stringValue,  Field field, Object name) {
+  public void parseAttributeOrTextContent(String stringValue,  Object name) {
     if (destinationMap != null && name != null) {
       Object value = parseValue(parameter.valueType, parameter.context, stringValue);
       setValue(destinationMap, (String)name, value);
@@ -65,7 +65,7 @@ public class MapParser extends Xml<Map<String,Object>> {
         if(field != null)
           throw new RuntimeException("parseAttributesFromElement (Destination Map) sanity check");
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),  null, fieldName);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),  fieldName);
       }
     }
   }

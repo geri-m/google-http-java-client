@@ -57,7 +57,7 @@ public abstract class Xml<T> {
 
   public abstract void parseAttributesFromElement();
 
-  public abstract void parseAttributeOrTextContent(String stringValue,  final Field field, Object name);
+  public abstract void parseAttributeOrTextContent(String stringValue, Object name);
 
   public abstract void setDestination(T destination);
 
@@ -315,11 +315,16 @@ public abstract class Xml<T> {
         case XmlPullParser.TEXT:
           // parse text content
           if (parameter.destination != null) {
-
-
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
+
+            if ((parser instanceof DedicatedObjectParser)) {
+              parser.setDestination(field);
+            }
+
+
             sanityCheck(parser, genericXml, destinationMap, field);
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+
             mapTextToElementValue(parameter, parser, field, TEXT_CONTENT);
           }
           break;
@@ -349,7 +354,6 @@ public abstract class Xml<T> {
             if((parser instanceof DedicatedObjectParser)){
               parser.setDestination(field);
             }
-
 
             Type fieldType = field == null ? parameter.valueType : field.getGenericType();
             fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, fieldType);
@@ -384,7 +388,11 @@ public abstract class Xml<T> {
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
                       sanityCheck(parser, genericXml, destinationMap, field);
-                      mapTextToElementValue(parameter, parser, field, fieldName);
+                      if(field == null){
+                        throw new RuntimeException("Field can not be null here");
+                      }
+
+                      parser.parseAttributeOrTextContent(parameter.parser.getText(),  parameter.destination);
                     }
                     break;
                   // Never reached while Testing
@@ -478,10 +486,9 @@ public abstract class Xml<T> {
       if(!(parser instanceof DedicatedObjectParser)){
         throw new RuntimeException("DedicatedObjectParser required");
       }
-
-      parser.parseAttributeOrTextContent(parameter.parser.getText(), field, parameter.destination);
+      parser.parseAttributeOrTextContent(parameter.parser.getText(),  parameter.destination);
     } else {
-      parser.parseAttributeOrTextContent(parameter.parser.getText(), null, textContent);
+      parser.parseAttributeOrTextContent(parameter.parser.getText(),  textContent);
     }
   }
 

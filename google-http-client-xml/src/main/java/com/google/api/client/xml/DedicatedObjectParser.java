@@ -36,7 +36,7 @@ public class DedicatedObjectParser extends Xml<Field> {
    * @param destination destination object or {@code null} for none
    */
 
-  @Override
+
   public void parseAttributeOrTextContent(String stringValue, Field field, Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
@@ -45,6 +45,7 @@ public class DedicatedObjectParser extends Xml<Field> {
     }
   }
 
+  @Override
   public void parseAttributeOrTextContent(String stringValue, Object destination) {
     parseAttributeOrTextContent(stringValue, this.field, destination);
   }

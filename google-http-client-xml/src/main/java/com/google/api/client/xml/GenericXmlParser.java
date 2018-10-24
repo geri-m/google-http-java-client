@@ -34,7 +34,7 @@ public class GenericXmlParser extends Xml<GenericXml> {
    */
   @Override
   public  void parseAttributeOrTextContent(String stringValue,
-                                                 Field field,
+
                                                  Object name) {
     if (genericXml != null && name != null) {
       Object value = parseValue(parameter.valueType, parameter.context, stringValue);
@@ -81,7 +81,7 @@ public class GenericXmlParser extends Xml<GenericXml> {
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
         parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-               null, fieldName);
+                fieldName);
 
       }
     }
