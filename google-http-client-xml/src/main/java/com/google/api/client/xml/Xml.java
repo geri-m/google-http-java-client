@@ -44,7 +44,7 @@ import org.xmlpull.v1.XmlSerializer;
  * @author Yaniv Inbar
  */
 @Beta
-public abstract class Xml {
+public abstract class Xml<T> {
 
 
   protected final ParserParameter parameter;
@@ -58,6 +58,8 @@ public abstract class Xml {
   public abstract void parseAttributesFromElement();
 
   public abstract void parseAttributeOrTextContent(String stringValue,  final Field field, Object name);
+
+  public abstract void setDestination(T destination);
 
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
@@ -313,14 +315,11 @@ public abstract class Xml {
         case XmlPullParser.TEXT:
           // parse text content
           if (parameter.destination != null) {
+
+
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
-
             sanityCheck(parser, genericXml, destinationMap, field);
-
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-
-
-
             mapTextToElementValue(parameter, parser, field, TEXT_CONTENT);
           }
           break;
@@ -346,6 +345,12 @@ public abstract class Xml {
 
             // fetch the field from the classInfo
             field = classInfo == null ? null : classInfo.getField(fieldName);
+
+            if((parser instanceof DedicatedObjectParser)){
+              parser.setDestination(field);
+            }
+
+
             Type fieldType = field == null ? parameter.valueType : field.getGenericType();
             fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, fieldType);
             // field type is now class, parameterized type, or generic array type
@@ -378,9 +383,7 @@ public abstract class Xml {
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-
                       sanityCheck(parser, genericXml, destinationMap, field);
-
                       mapTextToElementValue(parameter, parser, field, fieldName);
                     }
                     break;
@@ -397,7 +400,7 @@ public abstract class Xml {
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
                   parameter.customizeParser, genericXml, destinationMap, field, arrayValueMap,
-                  fieldName, fieldType, isArray);
+                  fieldName, fieldType, isArray, parser);
             } else {
               isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
                   parameter.customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
@@ -563,7 +566,7 @@ public abstract class Xml {
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
                                                 final String fieldName,
-                                                final Type fieldType, final boolean isArray)
+                                                final Type fieldType, final boolean isArray, final Xml parserObj)
       throws XmlPullParserException, IOException {
     boolean isStopped = false;
     // TODO(yanivi): some duplicate code here; isolate into reusable methods
@@ -629,7 +632,7 @@ public abstract class Xml {
       }
     } else {
       mapToCollection(destination, genericXml, destinationMap, field, fieldName, fieldType,
-          fieldInfo, elementValue);
+          fieldInfo, elementValue, parserObj);
     }
     return isStopped;
   }
@@ -637,7 +640,7 @@ public abstract class Xml {
   private static void mapToCollection(final Object destination, final GenericXml genericXml,
                                       final Map<String, Object> destinationMap, final Field field,
                                       final String fieldName, final Type fieldType,
-                                      final FieldInfo fieldInfo, final Object elementValue) {
+                                      final FieldInfo fieldInfo, final Object elementValue, final Xml parser) {
     // collection: add new element to collection  NOT YET Covered!
     @SuppressWarnings("unchecked")
     Collection<Object> collectionValue = (Collection<Object>)
@@ -749,7 +752,7 @@ public abstract class Xml {
     return result;
   }
 
-  // independed to Type; Derived Objects make use of this method.
+  // independent to Type; Derived Objects make use of this method.
   protected static Object parseValue(Type valueType, List<Type> context, String value) {
     valueType = Data.resolveWildcardTypeOrTypeVariable(context, valueType);
     if (valueType == Double.class || valueType == double.class) {

@@ -6,15 +6,20 @@ import java.util.List;
 import java.util.Map;
 import com.google.api.client.util.ClassInfo;
 
-public class MapParser extends Xml {
+public class MapParser extends Xml<Map<String,Object>> {
 
-  protected final Map<String, Object> destinationMap;
+  protected Map<String, Object> destinationMap;
 
   public MapParser(final ParserParameter parameter, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
     super(parameter, classInfo);
     this.destinationMap = destinationMap;
   }
 
+
+  @Override
+  public void setDestination(final Map<String, Object> genericXml) {
+    this.destinationMap = destinationMap;
+  }
 
   /**
    * Parses the string value of an attribute value or text content.

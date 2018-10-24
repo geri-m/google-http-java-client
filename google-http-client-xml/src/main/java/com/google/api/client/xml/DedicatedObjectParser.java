@@ -7,10 +7,23 @@ import java.util.Map;
 import com.google.api.client.util.ClassInfo;
 import com.google.api.client.util.FieldInfo;
 
-public class DedicatedObjectParser extends Xml {
+public class DedicatedObjectParser extends Xml<Field> {
 
-  public DedicatedObjectParser(final ParserParameter parameter,  final ClassInfo classInfo) {
+  private Field field;
+
+  public DedicatedObjectParser(final ParserParameter parameter, final Field field, final ClassInfo classInfo) {
+    this(parameter, classInfo);
+    this.field = field;
+  }
+
+
+  public DedicatedObjectParser(final ParserParameter parameter, final ClassInfo classInfo) {
     super(parameter, classInfo);
+  }
+
+  @Override
+  public void setDestination(final Field field) {
+    this.field = field;
   }
 
 

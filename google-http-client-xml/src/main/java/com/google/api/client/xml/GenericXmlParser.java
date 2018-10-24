@@ -7,15 +7,21 @@ import java.util.Map;
 import org.xmlpull.v1.XmlPullParser;
 import com.google.api.client.util.ClassInfo;
 
-public class GenericXmlParser extends Xml {
+public class GenericXmlParser extends Xml<GenericXml> {
 
-  protected final GenericXml genericXml;
+  protected GenericXml genericXml;
 
   public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml,  final ClassInfo classInfo){
     super(parameter, classInfo);
     this.genericXml = genericXml;
     initForGenericXml();
   }
+
+  @Override
+  public void setDestination(final GenericXml genericXml) {
+    this.genericXml = genericXml;
+  }
+
   /**
    * Parses the string value of an attribute value or text content.
    *
