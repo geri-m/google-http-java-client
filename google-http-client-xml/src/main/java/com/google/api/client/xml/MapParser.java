@@ -17,16 +17,16 @@ public class MapParser extends Xml {
    * Parses the string value of an attribute value or text content.
    *
    * @param stringValue    string value
-   * @param valueType      value type (class, parameterized type, or generic array type) or {@code null} for none
-   * @param context        context list, going from least specific to most specific type context, for example container class and its field
-   * @param destinationMap destination map or {@code null} if not applicable
+  // * @param valueType      value type (class, parameterized type, or generic array type) or {@code null} for none
+  // * @param context        context list, going from least specific to most specific type context, for example container class and its field
+  // * @param destinationMap destination map or {@code null} if not applicable
    * @param name           key name
    */
 
   @Override
-  public void parseAttributeOrTextContent(String stringValue, Type valueType, List<Type> context, GenericXml genericXml, Map<String, Object> destinationMap, Field field, Object name) {
+  public void parseAttributeOrTextContent(String stringValue,  Field field, Object name) {
     if (destinationMap != null && name != null) {
-      Object value = parseValue(valueType, context, stringValue);
+      Object value = parseValue(parameter.valueType, parameter.context, stringValue);
       setValue(destinationMap, (String)name, value);
     }
   }
@@ -57,7 +57,7 @@ public class MapParser extends Xml {
         if(field != null)
           throw new RuntimeException("parseAttributesFromElement (Destination Map) sanity check");
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, null, destinationMap, null, fieldName);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),  null, fieldName);
       }
     }
   }

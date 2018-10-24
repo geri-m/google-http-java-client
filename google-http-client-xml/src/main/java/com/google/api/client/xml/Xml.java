@@ -61,7 +61,7 @@ public abstract class Xml {
 
   public abstract void parseAttributesFromElement();
 
-  public abstract void parseAttributeOrTextContent(String stringValue, Type valueType, List<Type> context, GenericXml genericXml,  Map<String, Object> destinationMap, final Field field, Object name);
+  public abstract void parseAttributeOrTextContent(String stringValue,  final Field field, Object name);
 
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
@@ -292,20 +292,14 @@ public abstract class Xml {
 
             if (field != null) {
               parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  parameter.valueType,
-                  parameter.context,
-                  null, null, field,
+                  field,
                   parameter.destination);
             } else if (genericXml != null) {
               parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  parameter.valueType,
-                  parameter.context,
-                  genericXml, null, null, TEXT_CONTENT);
+                  null, TEXT_CONTENT);
             } else {
               parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  parameter.valueType,
-                  parameter.context,
-                  null, destinationMap, null,
+                   null,
                   TEXT_CONTENT);
             }
           }
@@ -367,18 +361,12 @@ public abstract class Xml {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
                       if (field != null) {
-                        parser.parseAttributeOrTextContent(parameter.parser.getText(),parameter.valueType, parameter.context,  null, null, field, parameter.destination);
+                        parser.parseAttributeOrTextContent(parameter.parser.getText(), field, parameter.destination);
                       } else if (genericXml != null) {
                         parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                            parameter.valueType,
-                            parameter.context,
-                            genericXml, null, null, fieldName);
+                             null, fieldName);
                       } else {
                         parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                            parameter.valueType,
-                            parameter.context,
-                            null,
-                            destinationMap,
                             null,
                             fieldName);
                       }

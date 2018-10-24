@@ -18,22 +18,18 @@ public class GenericXmlParser extends Xml {
    * Parses the string value of an attribute value or text content.
    *
    * @param stringValue string value
-   * @param valueType value type (class, parameterized type, or generic array type) or {@code null}
+  // * @param valueType value type (class, parameterized type, or generic array type) or {@code null}
    *        for none
-   * @param context context list, going from least specific to most specific type context, for
+  // * @param context context list, going from least specific to most specific type context, for
    *        example container class and its field
    * @param name key name
    */
   @Override
   public  void parseAttributeOrTextContent(String stringValue,
-                                                 Type valueType,
-                                                 List<Type> context,
-                                                 GenericXml genericXml,
-                                                 Map<String, Object> map,
                                                  Field field,
                                                  Object name) {
     if (genericXml != null && name != null) {
-      Object value = parseValue(valueType, context, stringValue);
+      Object value = parseValue(parameter.valueType, parameter.context, stringValue);
       setValue(genericXml, (String)name, value);
 
     }
@@ -77,9 +73,7 @@ public class GenericXmlParser extends Xml {
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
         parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
-              parameter.valueType,
-              parameter.context,
-              genericXml, null, null, fieldName);
+               null, fieldName);
 
       }
     }

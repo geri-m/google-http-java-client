@@ -17,17 +17,17 @@ public class DedicatedObjectParser extends Xml {
   /**
    * Parses the string value of an attribute value or text content.
    *  @param stringValue string value
-   * @param context     context list, going from least specific to most specific type context, for example container class and its field
-   * @param valueType   value type (class, parameterized type, or generic array type) or {@code null} for none
+   //* @param context     context list, going from least specific to most specific type context, for example container class and its field
+   //* @param valueType   value type (class, parameterized type, or generic array type) or {@code null} for none
    * @param field       field to set or {@code null} if not applicable
    * @param destination destination object or {@code null} for none
    */
 
   @Override
-  public void parseAttributeOrTextContent(String stringValue, Type valueType,  List<Type> context, GenericXml genericXml,  Map<String, Object> map,  Field field, Object destination) {
+  public void parseAttributeOrTextContent(String stringValue,   Field field, Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
-      Object value = parseValue(valueType, context, stringValue);
+      Object value = parseValue(parameter.valueType, parameter.context, stringValue);
       setValue(field, destination, value);
     }
   }
@@ -57,7 +57,7 @@ public class DedicatedObjectParser extends Xml {
         String fieldName = getFieldName(true, attributeAlias,  attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, null,null, field, parameter.destination);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), field, parameter.destination);
       }
     }
   }
