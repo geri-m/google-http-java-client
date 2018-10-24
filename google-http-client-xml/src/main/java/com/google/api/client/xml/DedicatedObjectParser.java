@@ -37,12 +37,16 @@ public class DedicatedObjectParser extends Xml<Field> {
    */
 
   @Override
-  public void parseAttributeOrTextContent(String stringValue,   Field field, Object destination) {
+  public void parseAttributeOrTextContent(String stringValue, Field field, Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
       Object value = parseValue(parameter.valueType, parameter.context, stringValue);
       setValue(field, destination, value);
     }
+  }
+
+  public void parseAttributeOrTextContent(String stringValue, Object destination) {
+    parseAttributeOrTextContent(stringValue, this.field, destination);
   }
 
   /**

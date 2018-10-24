@@ -475,6 +475,10 @@ public abstract class Xml<T> {
 
   private static void mapTextToElementValue(final ParserParameter parameter, final Xml parser, final Field field, final String textContent) {
     if (field != null) {
+      if(!(parser instanceof DedicatedObjectParser)){
+        throw new RuntimeException("DedicatedObjectParser required");
+      }
+
       parser.parseAttributeOrTextContent(parameter.parser.getText(), field, parameter.destination);
     } else {
       parser.parseAttributeOrTextContent(parameter.parser.getText(), null, textContent);
