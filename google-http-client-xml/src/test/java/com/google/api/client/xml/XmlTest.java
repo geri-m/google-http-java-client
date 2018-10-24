@@ -601,5 +601,41 @@ public class XmlTest {
     assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\" />", out.toString());
   }
 
+  private static final String ANY_TYPE_XML_NESTED_ARRAY =
+      "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<elem>content</elem><rep><p>rep1</p><p>rep2</p></rep><rep><p>rep3</p><p>rep4</p></rep><value>content</value></any>";
+
+  @SuppressWarnings("cast")
+  @Test
+  public void testParseAnyTypeWithNestedArray() throws Exception {
+    AnyType xml = new AnyType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML_NESTED_ARRAY));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    assertTrue(xml.attr instanceof String);
+    assertTrue(xml.elem.toString(), xml.elem instanceof ArrayList<?>);
+    assertTrue(xml.rep.toString(), xml.rep instanceof ArrayList<?>);
+    assertTrue(xml.value instanceof ValueType);
+    assertTrue(xml.value.content instanceof String);
+    assertEquals(1, ((ArrayList<?>)xml.elem).size());
+    assertEquals(2, ((ArrayList<?>)xml.rep).size());
+    assertEquals(1, ((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[0].size());
+    assertEquals(1, ((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[1].size());
+
+
+    assertEquals("rep1", ((ArrayList<?>)((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[0].get("p")).toArray(new ArrayMap[]{})[0].getValue(0));
+    assertEquals("rep2", ((ArrayList<?>)((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[0].get("p")).toArray(new ArrayMap[]{})[1].getValue(0));
+    assertEquals("rep3", ((ArrayList<?>)((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[1].get("p")).toArray(new ArrayMap[]{})[0].getValue(0));
+    assertEquals("rep4", ((ArrayList<?>)((ArrayList<?>)xml.rep).toArray(new ArrayMap[]{})[1].get("p")).toArray(new ArrayMap[]{})[1].getValue(0));
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ANY_TYPE_XML_NESTED_ARRAY, out.toString());
+  }
+
 }
 
