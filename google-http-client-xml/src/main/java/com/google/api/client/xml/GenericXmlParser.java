@@ -9,9 +9,11 @@ import com.google.api.client.util.ClassInfo;
 
 public class GenericXmlParser extends Xml {
 
+  protected final GenericXml genericXml;
 
-  public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo){
-    super(parameter, genericXml, destinationMap, classInfo);
+  public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml,  final ClassInfo classInfo){
+    super(parameter, classInfo);
+    this.genericXml = genericXml;
     initForGenericXml();
   }
   /**

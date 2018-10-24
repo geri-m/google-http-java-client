@@ -48,14 +48,10 @@ public abstract class Xml {
 
 
   protected final ParserParameter parameter;
-  protected final GenericXml genericXml;
-  protected final Map<String, Object> destinationMap;
   protected final ClassInfo classInfo;
 
-  protected Xml(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap,   final ClassInfo classInfo) {
+  protected Xml(final ParserParameter parameter, final ClassInfo classInfo) {
     this.parameter = parameter;
-    this.genericXml = genericXml;
-    this.destinationMap = destinationMap;
     this.classInfo = classInfo;
   }
 
@@ -241,6 +237,37 @@ public abstract class Xml {
     ClassInfo classInfo =
         destinationMap != null || parameter.destination == null ? null : ClassInfo.of(parameter.destination.getClass());
 
+
+    if(classInfo != null){
+      /*
+      if(genericXml != null)
+        throw new RuntimeException("Generic XML Must be null!");
+      */
+      if(destinationMap != null)
+        throw new RuntimeException("destinationMap XML Must be null!");
+    }
+
+
+    if(genericXml != null){
+      /*
+      if(classInfo != null)
+        throw new RuntimeException("classInfo Musst be null!");
+      */
+      if(destinationMap != null)
+        throw new RuntimeException("destinationMap XML Musst be null!");
+    }
+
+
+    if(destinationMap != null){
+      if(classInfo != null)
+        throw new RuntimeException("classInfo Musst be null!");
+
+      if(genericXml != null)
+        throw new RuntimeException("genericXml XML Musst be null!");
+    }
+
+
+
     // if we are the very beginning of the document, get the next element/event
     if (parameter.parser.getEventType() == XmlPullParser.START_DOCUMENT) {
       parameter.parser.next();
@@ -252,12 +279,12 @@ public abstract class Xml {
     final Xml parser;
     // if we have a dedicated destination
     if (!(parameter.destination instanceof GenericXml) &&  parameter.destination instanceof Map<?, ?>) {
-      parser = new MapParser(parameter, genericXml, destinationMap, classInfo);
+      parser = new MapParser(parameter,  destinationMap, classInfo);
     } else if (parameter.destination instanceof GenericXml) {
       // if we have a generic XML, set the namespace
-      parser = new GenericXmlParser(parameter, genericXml, destinationMap, classInfo);
+      parser = new GenericXmlParser(parameter, genericXml,  classInfo);
     } else {
-      parser = new DedicatedObjectParser(parameter, genericXml, destinationMap, classInfo);
+      parser = new DedicatedObjectParser(parameter, classInfo);
     }
 
     parser.parseAttributesFromElement();
@@ -288,20 +315,13 @@ public abstract class Xml {
           if (parameter.destination != null) {
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
 
+            sanityCheck(parser, genericXml, destinationMap, field);
+
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
-            if (field != null) {
-              parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  field,
-                  parameter.destination);
-            } else if (genericXml != null) {
-              parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                  null, TEXT_CONTENT);
-            } else {
-              parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                   null,
-                  TEXT_CONTENT);
-            }
+
+
+            mapTextToElementValue(parameter, parser, field, TEXT_CONTENT);
           }
           break;
         case XmlPullParser.START_TAG:
@@ -357,20 +377,11 @@ public abstract class Xml {
                     break;
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
-
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
-                      if (field != null) {
-                        parser.parseAttributeOrTextContent(parameter.parser.getText(), field, parameter.destination);
-                      } else if (genericXml != null) {
-                        parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                             null, fieldName);
-                      } else {
-                        parser.parseAttributeOrTextContent(parameter.parser.getText(),
-                            null,
-                            fieldName);
-                      }
+                      sanityCheck(parser, genericXml, destinationMap, field);
 
+                      mapTextToElementValue(parameter, parser, field, fieldName);
                     }
                     break;
                   // Never reached while Testing
@@ -419,6 +430,52 @@ public abstract class Xml {
     arrayValueMap.setValues();
 
     return isStopped;
+  }
+
+  private static void sanityCheck(final Xml parser, final GenericXml genericXml, final Map<String, Object> destinationMap, final Field field) {
+    if (field != null) {
+
+      if (!(parser instanceof DedicatedObjectParser))
+        throw new RuntimeException("Incorrect Parser");
+
+      if (genericXml != null)
+        throw new RuntimeException("Field Must  be null!");
+
+      if (destinationMap != null)
+        throw new RuntimeException("destinationMap XML Must be null!");
+    }
+
+    if (genericXml != null) {
+      if (!(parser instanceof GenericXmlParser))
+        throw new RuntimeException("Incorrect Parser");
+
+      if (field != null)
+        throw new RuntimeException("Field Must  be null!");
+
+      if (destinationMap != null)
+        throw new RuntimeException("destinationMap XML Must be null!");
+    }
+
+
+    if (destinationMap != null) {
+
+      if (!(parser instanceof MapParser))
+        throw new RuntimeException("Incorrect Parser");
+
+      if (field != null)
+        throw new RuntimeException("field Must be null!");
+
+      if (genericXml != null)
+        throw new RuntimeException("genericXml XML Must be null!");
+    }
+  }
+
+  private static void mapTextToElementValue(final ParserParameter parameter, final Xml parser, final Field field, final String textContent) {
+    if (field != null) {
+      parser.parseAttributeOrTextContent(parameter.parser.getText(), field, parameter.destination);
+    } else {
+      parser.parseAttributeOrTextContent(parameter.parser.getText(), null, textContent);
+    }
   }
 
 
@@ -477,11 +534,12 @@ public abstract class Xml {
         fieldInfo.setValue(destination, mapValue);
       }
     } else {
-      // GenericXml: store as ArrayList of elements
+
       if(!(destination instanceof  GenericXml)){
         throw new RuntimeException("Desintation is not a Gernic XML");
       }
 
+      // GenericXml: store as ArrayList of elements
       GenericXml atom = (GenericXml) destination;
       @SuppressWarnings("unchecked")
       Collection<Object> list = (Collection<Object>) atom.get(fieldName);

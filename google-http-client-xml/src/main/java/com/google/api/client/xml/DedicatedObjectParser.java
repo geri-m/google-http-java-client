@@ -9,8 +9,8 @@ import com.google.api.client.util.FieldInfo;
 
 public class DedicatedObjectParser extends Xml {
 
-  public DedicatedObjectParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
-    super(parameter, genericXml, destinationMap, classInfo);
+  public DedicatedObjectParser(final ParserParameter parameter,  final ClassInfo classInfo) {
+    super(parameter, classInfo);
   }
 
 

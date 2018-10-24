@@ -8,8 +8,11 @@ import com.google.api.client.util.ClassInfo;
 
 public class MapParser extends Xml {
 
-  public MapParser(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
-    super(parameter, genericXml, destinationMap, classInfo);
+  protected final Map<String, Object> destinationMap;
+
+  public MapParser(final ParserParameter parameter, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+    super(parameter, classInfo);
+    this.destinationMap = destinationMap;
   }
 
 
