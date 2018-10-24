@@ -35,7 +35,7 @@ public class MapParser extends Xml<Map<String,Object>> {
   public void parseAttributeOrTextContent(String stringValue,  Object name) {
     if (destinationMap != null && name != null) {
       Object value = parseValue(parameter.valueType, parameter.context, stringValue);
-      setValue(destinationMap, (String)name, value);
+      setValue(name, value);
     }
   }
 
@@ -43,12 +43,13 @@ public class MapParser extends Xml<Map<String,Object>> {
    * Sets the value of a given field or map entry.
    *
    * @param value          value
-   * @param destinationMap destination map or {@code null} if not applicable
+   //* @param destinationMap destination map or {@code null} if not applicable
    * @param name           key name
    */
 
-  public static void setValue(Map<String, Object> destinationMap, String name, Object value) {
-    destinationMap.put(name, value);
+  @Override
+  public void setValue(Object name, Object value) {
+    destinationMap.put((String)name, value);
   }
 
   public  void parseAttributesFromElement() {

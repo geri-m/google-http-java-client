@@ -61,6 +61,8 @@ public abstract class Xml<T> {
 
   public abstract void setDestination(T destination);
 
+  public abstract void setValue(Object name, Object value);
+
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
    *
@@ -412,7 +414,7 @@ public abstract class Xml<T> {
             } else {
               isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
                   parameter.customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
-                  fieldClass);
+                  fieldClass, parser);
             }
           }
 
@@ -663,12 +665,14 @@ public abstract class Xml<T> {
         throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
       }
 
-      if (field != null) {
-        DedicatedObjectParser.setValue(field, destination, collectionValue);
-      } else if (genericXml != null) {
-        GenericXmlParser.setValue(genericXml, fieldName, collectionValue);
+      // super hacky for the moment.
+      if (field != null && parser instanceof DedicatedObjectParser) {
+        parser.setValue(destination, collectionValue);
+      } else if (genericXml != null && parser instanceof GenericXmlParser) {
+        parser.setValue(fieldName, collectionValue);
       } else {
-        MapParser.setValue(destinationMap, fieldName, collectionValue);
+        throw new RuntimeException("We must not endup here");
+        // parser.setValue(fieldName, collectionValue);
       }
 
     }
@@ -683,7 +687,7 @@ public abstract class Xml<T> {
                                                final GenericXml genericXml,
                                                final Map<String, Object> destinationMap,
                                                final Field field, final String fieldName,
-                                               final Type fieldType, final Class<?> fieldClass)
+                                               final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
       throws IOException, XmlPullParserException {
 
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
@@ -707,11 +711,11 @@ public abstract class Xml<T> {
     }
 
     if (field != null) {
-      DedicatedObjectParser.setValue(field, destination, value);
+      parserObj.setValue(destination, value);
     } else if (genericXml != null) {
-      GenericXmlParser.setValue(genericXml, fieldName, value);
+      parserObj.setValue(fieldName, value);
     } else {
-      MapParser.setValue(destinationMap, fieldName, value);
+      parserObj.setValue(fieldName, value);
     }
 
 

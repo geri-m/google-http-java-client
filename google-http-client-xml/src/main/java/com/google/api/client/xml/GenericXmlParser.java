@@ -34,11 +34,10 @@ public class GenericXmlParser extends Xml<GenericXml> {
    */
   @Override
   public  void parseAttributeOrTextContent(String stringValue,
-
                                                  Object name) {
     if (genericXml != null && name != null) {
       Object value = parseValue(parameter.valueType, parameter.context, stringValue);
-      setValue(genericXml, (String)name, value);
+      setValue(name, value);
 
     }
   }
@@ -46,12 +45,13 @@ public class GenericXmlParser extends Xml<GenericXml> {
    * Sets the value of a given field or map entry.
    *
    * @param value value
-   * @param genericXml generic XML or {@code null} if not applicable
+   // * @param genericXml generic XML or {@code null} if not applicable
    * @param name key name
    */
 
-  public static void setValue(GenericXml genericXml, String name, Object value){
-    genericXml.set(name, value);
+  @Override
+  public  void setValue(Object name, Object value){
+    genericXml.set((String)name, value);
   }
 
 

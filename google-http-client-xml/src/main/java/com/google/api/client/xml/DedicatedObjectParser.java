@@ -55,12 +55,17 @@ public class DedicatedObjectParser extends Xml<Field> {
    *
    * @param value       value
    * @param field       field to set or {@code null} if not applicable
-   * @param destination destination object or {@code null} for none
+   * @param name        destination object or {@code null} for none
    */
 
 
-  public static void setValue(Field field, Object destination, Object value) {
-    FieldInfo.setFieldValue(field, destination, value);
+  public  void setValue(Field field, Object name, Object value) {
+    FieldInfo.setFieldValue(field, name, value);
+  }
+
+  @Override
+  public  void setValue( Object name, Object value) {
+    setValue(field, name, value);
   }
 
   public  void parseAttributesFromElement() {
