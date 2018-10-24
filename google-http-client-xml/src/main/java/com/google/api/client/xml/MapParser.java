@@ -23,10 +23,11 @@ public class MapParser extends Xml {
    * @param name           key name
    */
 
-  public static void parseAttributeOrTextContent(String stringValue, Type valueType, List<Type> context, Map<String, Object> destinationMap, String name) {
+  @Override
+  public void parseAttributeOrTextContent(String stringValue, Type valueType, List<Type> context, GenericXml genericXml, Map<String, Object> destinationMap, Field field, Object name) {
     if (destinationMap != null && name != null) {
       Object value = parseValue(valueType, context, stringValue);
-      setValue(destinationMap, name, value);
+      setValue(destinationMap, (String)name, value);
     }
   }
 
@@ -56,7 +57,7 @@ public class MapParser extends Xml {
         if(field != null)
           throw new RuntimeException("parseAttributesFromElement (Destination Map) sanity check");
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, destinationMap, fieldName);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, null, destinationMap, null, fieldName);
       }
     }
   }

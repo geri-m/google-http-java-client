@@ -52,7 +52,7 @@ public abstract class Xml {
   protected final Map<String, Object> destinationMap;
   protected final ClassInfo classInfo;
 
-  protected Xml(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+  protected Xml(final ParserParameter parameter, final GenericXml genericXml, final Map<String, Object> destinationMap,   final ClassInfo classInfo) {
     this.parameter = parameter;
     this.genericXml = genericXml;
     this.destinationMap = destinationMap;
@@ -60,6 +60,8 @@ public abstract class Xml {
   }
 
   public abstract void parseAttributesFromElement();
+
+  public abstract void parseAttributeOrTextContent(String stringValue, Type valueType, List<Type> context, GenericXml genericXml,  Map<String, Object> destinationMap, final Field field, Object name);
 
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
@@ -289,20 +291,21 @@ public abstract class Xml {
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
             if (field != null) {
-              DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(),
+              parser.parseAttributeOrTextContent(parameter.parser.getText(),
+                  parameter.valueType,
                   parameter.context,
-                  parameter.valueType, field,
+                  null, null, field,
                   parameter.destination);
             } else if (genericXml != null) {
-              GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
+              parser.parseAttributeOrTextContent(parameter.parser.getText(),
                   parameter.valueType,
                   parameter.context,
-                  genericXml, TEXT_CONTENT);
+                  genericXml, null, null, TEXT_CONTENT);
             } else {
-              MapParser.parseAttributeOrTextContent(parameter.parser.getText(),
+              parser.parseAttributeOrTextContent(parameter.parser.getText(),
                   parameter.valueType,
                   parameter.context,
-                  destinationMap,
+                  null, destinationMap, null,
                   TEXT_CONTENT);
             }
           }
@@ -364,17 +367,19 @@ public abstract class Xml {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
                       if (field != null) {
-                        DedicatedObjectParser.parseAttributeOrTextContent(parameter.parser.getText(), parameter.context, parameter.valueType, field, parameter.destination);
+                        parser.parseAttributeOrTextContent(parameter.parser.getText(),parameter.valueType, parameter.context,  null, null, field, parameter.destination);
                       } else if (genericXml != null) {
-                        GenericXmlParser.parseAttributeOrTextContent(parameter.parser.getText(),
+                        parser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
                             parameter.context,
-                            genericXml, fieldName);
+                            genericXml, null, null, fieldName);
                       } else {
-                        MapParser.parseAttributeOrTextContent(parameter.parser.getText(),
+                        parser.parseAttributeOrTextContent(parameter.parser.getText(),
                             parameter.valueType,
                             parameter.context,
+                            null,
                             destinationMap,
+                            null,
                             fieldName);
                       }
 

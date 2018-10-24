@@ -24,14 +24,17 @@ public class GenericXmlParser extends Xml {
    *        example container class and its field
    * @param name key name
    */
-  public static void parseAttributeOrTextContent(String stringValue,
+  @Override
+  public  void parseAttributeOrTextContent(String stringValue,
                                                  Type valueType,
                                                  List<Type> context,
                                                  GenericXml genericXml,
-                                                 String name) {
+                                                 Map<String, Object> map,
+                                                 Field field,
+                                                 Object name) {
     if (genericXml != null && name != null) {
       Object value = parseValue(valueType, context, stringValue);
-      setValue(genericXml, name, value);
+      setValue(genericXml, (String)name, value);
 
     }
   }
@@ -76,7 +79,7 @@ public class GenericXmlParser extends Xml {
         parseAttributeOrTextContent(parameter.parser.getAttributeValue(i),
               parameter.valueType,
               parameter.context,
-              genericXml, fieldName);
+              genericXml, null, null, fieldName);
 
       }
     }

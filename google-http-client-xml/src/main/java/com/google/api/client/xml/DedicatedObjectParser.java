@@ -23,7 +23,8 @@ public class DedicatedObjectParser extends Xml {
    * @param destination destination object or {@code null} for none
    */
 
-  public static void parseAttributeOrTextContent(String stringValue, List<Type> context, Type valueType, Field field, Object destination) {
+  @Override
+  public void parseAttributeOrTextContent(String stringValue, Type valueType,  List<Type> context, GenericXml genericXml,  Map<String, Object> map,  Field field, Object destination) {
     // TODO: Figure out, when Field could be null.
     if (field != null && destination != null) {
       Object value = parseValue(valueType, context, stringValue);
@@ -56,7 +57,7 @@ public class DedicatedObjectParser extends Xml {
         String fieldName = getFieldName(true, attributeAlias,  attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.context, parameter.valueType, field, parameter.destination);
+        parseAttributeOrTextContent(parameter.parser.getAttributeValue(i), parameter.valueType, parameter.context, null,null, field, parameter.destination);
       }
     }
   }
