@@ -229,13 +229,10 @@ public abstract class Xml<T> {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
 
-    // if the destination is a GenericXML then we are going the set the generic XML.
-    GenericXml genericXml = parameter.destination instanceof GenericXml ? (GenericXml) parameter.destination : null;
-
     // if the destination is GenericXML and the destination is a Map, create a destination Map.
     @SuppressWarnings("unchecked")
     Map<String, Object> destinationMap =
-        genericXml == null && parameter.destination instanceof Map<?, ?> ? Map.class.cast(parameter.destination) : null;
+        !(parameter.destination instanceof GenericXml) && parameter.destination instanceof Map<?, ?> ? Map.class.cast(parameter.destination) : null;
 
     // if there is a class, we want to put the data into, create the class Info for this
     ClassInfo classInfo =
@@ -243,31 +240,16 @@ public abstract class Xml<T> {
 
 
     if(classInfo != null){
-      /*
-      if(genericXml != null)
-        throw new RuntimeException("Generic XML Must be null!");
-      */
       if(destinationMap != null)
         throw new RuntimeException("destinationMap XML Must be null!");
     }
 
-
-    if(genericXml != null){
-      /*
-      if(classInfo != null)
-        throw new RuntimeException("classInfo Musst be null!");
-      */
-      if(destinationMap != null)
-        throw new RuntimeException("destinationMap XML Musst be null!");
-    }
 
 
     if(destinationMap != null){
       if(classInfo != null)
         throw new RuntimeException("classInfo Musst be null!");
 
-      if(genericXml != null)
-        throw new RuntimeException("genericXml XML Musst be null!");
     }
 
 
@@ -286,7 +268,7 @@ public abstract class Xml<T> {
       parser = new MapParser(parameter,  destinationMap, classInfo);
     } else if (parameter.destination instanceof GenericXml) {
       // if we have a generic XML, set the namespace
-      parser = new GenericXmlParser(parameter, genericXml,  classInfo);
+      parser = new GenericXmlParser(parameter,  classInfo);
     } else {
       parser = new DedicatedObjectParser(parameter, classInfo);
     }
@@ -324,7 +306,7 @@ public abstract class Xml<T> {
             }
 
 
-            sanityCheck(parser, genericXml, destinationMap, field);
+            sanityCheck(parser, destinationMap, field);
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
             mapTextToElementValue(parameter, parser, field, TEXT_CONTENT);
@@ -367,7 +349,7 @@ public abstract class Xml<T> {
             }
             boolean isArray = Types.isArray(fieldType);
             // text content
-            boolean ignore = field == null && destinationMap == null && genericXml == null;
+            boolean ignore = field == null && destinationMap == null && !(parser instanceof GenericXmlParser);
             // is the field an Enum
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
             // Primitive or Enum
@@ -389,7 +371,7 @@ public abstract class Xml<T> {
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-                      sanityCheck(parser, genericXml, destinationMap, field);
+                      sanityCheck(parser, destinationMap, field);
                       if(field == null){
                         throw new RuntimeException("Field can not be null here");
                       }
@@ -409,11 +391,11 @@ public abstract class Xml<T> {
                   parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, genericXml, destinationMap, field, arrayValueMap,
+                  parameter.customizeParser,  destinationMap, field, arrayValueMap,
                   fieldName, fieldType, isArray, parser);
             } else {
               isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, genericXml, destinationMap, field, fieldName, fieldType,
+                  parameter.customizeParser, destinationMap, field, fieldName, fieldType,
                   fieldClass, parser);
             }
           }
@@ -445,25 +427,12 @@ public abstract class Xml<T> {
     return isStopped;
   }
 
-  private static void sanityCheck(final Xml parser, final GenericXml genericXml, final Map<String, Object> destinationMap, final Field field) {
+  private static void sanityCheck(final Xml parser,  final Map<String, Object> destinationMap, final Field field) {
     if (field != null) {
 
       if (!(parser instanceof DedicatedObjectParser))
         throw new RuntimeException("Incorrect Parser");
 
-      if (genericXml != null)
-        throw new RuntimeException("Field Must  be null!");
-
-      if (destinationMap != null)
-        throw new RuntimeException("destinationMap XML Must be null!");
-    }
-
-    if (genericXml != null) {
-      if (!(parser instanceof GenericXmlParser))
-        throw new RuntimeException("Incorrect Parser");
-
-      if (field != null)
-        throw new RuntimeException("Field Must  be null!");
 
       if (destinationMap != null)
         throw new RuntimeException("destinationMap XML Must be null!");
@@ -478,8 +447,6 @@ public abstract class Xml<T> {
       if (field != null)
         throw new RuntimeException("field Must be null!");
 
-      if (genericXml != null)
-        throw new RuntimeException("genericXml XML Must be null!");
     }
   }
 
@@ -574,7 +541,7 @@ public abstract class Xml<T> {
                                                 final Object destination,
                                                 final XmlNamespaceDictionary namespaceDictionary,
                                                 final CustomizeParser customizeParser,
-                                                final GenericXml genericXml,
+
                                                 final Map<String, Object> destinationMap,
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
@@ -644,13 +611,13 @@ public abstract class Xml<T> {
         arrayValueMap.put(field, rawArrayComponentType, elementValue);
       }
     } else {
-      mapToCollection(destination, genericXml, destinationMap, field, fieldName, fieldType,
+      mapToCollection(destination,  destinationMap, field, fieldName, fieldType,
           fieldInfo, elementValue, parserObj);
     }
     return isStopped;
   }
 
-  private static void mapToCollection(final Object destination, final GenericXml genericXml,
+  private static void mapToCollection(final Object destination,
                                       final Map<String, Object> destinationMap, final Field field,
                                       final String fieldName, final Type fieldType,
                                       final FieldInfo fieldInfo, final Object elementValue, final Xml parser) {
@@ -668,7 +635,7 @@ public abstract class Xml<T> {
       // super hacky for the moment.
       if (field != null && parser instanceof DedicatedObjectParser) {
         parser.setValue(destination, collectionValue);
-      } else if (genericXml != null && parser instanceof GenericXmlParser) {
+      } else if (parser instanceof GenericXmlParser) {
         parser.setValue(fieldName, collectionValue);
       } else {
         throw new RuntimeException("We must not endup here");
@@ -684,7 +651,6 @@ public abstract class Xml<T> {
                                                final Object destination,
                                                final XmlNamespaceDictionary namespaceDictionary,
                                                final CustomizeParser customizeParser,
-                                               final GenericXml genericXml,
                                                final Map<String, Object> destinationMap,
                                                final Field field, final String fieldName,
                                                final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
@@ -702,19 +668,14 @@ public abstract class Xml<T> {
         customizeParser));
     context.remove(contextSize);
 
-    if(genericXml != null){
-      throw new RuntimeException(" This should not happen, as Array != Generic. Remove if problem");
-    }
-
     if(destinationMap != null){
       throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
     }
 
     if (field != null) {
       parserObj.setValue(destination, value);
-    } else if (genericXml != null) {
-      parserObj.setValue(fieldName, value);
-    } else {
+    }  else {
+      // we never end up here?
       parserObj.setValue(fieldName, value);
     }
 

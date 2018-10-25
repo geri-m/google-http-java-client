@@ -11,9 +11,9 @@ public class GenericXmlParser extends Xml<GenericXml> {
 
   protected GenericXml genericXml;
 
-  public GenericXmlParser(final ParserParameter parameter, final GenericXml genericXml,  final ClassInfo classInfo){
+  public GenericXmlParser(final ParserParameter parameter, final ClassInfo classInfo){
     super(parameter, classInfo);
-    this.genericXml = genericXml;
+    this.genericXml = (GenericXml) parameter.destination;
     initForGenericXml();
   }
 
