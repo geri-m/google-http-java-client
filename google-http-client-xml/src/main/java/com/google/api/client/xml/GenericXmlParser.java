@@ -2,6 +2,8 @@ package com.google.api.client.xml;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.xmlpull.v1.XmlPullParser;
@@ -85,6 +87,19 @@ public class GenericXmlParser extends Xml<GenericXml> {
 
       }
     }
+  }
+
+  @Override
+  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
+
+    // GenericXml: store as ArrayList of elements
+    // GenericXml atom = (GenericXml) destination;
+    @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>) genericXml.get(fieldName);
+    if (list == null) {
+      list = new ArrayList<Object>(1);
+      genericXml.set(fieldName, list);
+    }
+    list.add(mapValue);
   }
 
 }

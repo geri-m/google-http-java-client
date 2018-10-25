@@ -2,6 +2,8 @@ package com.google.api.client.xml;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import com.google.api.client.util.ClassInfo;
@@ -84,4 +86,26 @@ public class DedicatedObjectParser extends Xml<Field> {
       }
     }
   }
+
+  @Override
+  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
+
+
+    // not a map: store in field value
+    FieldInfo fieldInfo = FieldInfo.of(field);
+    if (fieldClass == Object.class) {
+      // field is an Object: store as ArrayList of element maps
+      @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>) fieldInfo.getValue(parameter.destination);
+      if (list == null) {
+        list = new ArrayList<Object>(1);
+        fieldInfo.setValue(parameter.destination, list);
+      }
+      list.add(mapValue);
+    } else {
+      // field is a Map: store as a single element map
+      fieldInfo.setValue(parameter.destination, mapValue);
+    }
+  }
+
+
 }

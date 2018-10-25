@@ -2,6 +2,8 @@ package com.google.api.client.xml;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import com.google.api.client.util.ClassInfo;
@@ -70,4 +72,21 @@ public class MapParser extends Xml<Map<String,Object>> {
       }
     }
   }
+
+  @Override
+  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
+
+    // map but not GenericXml: store as ArrayList of elements
+    @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>)
+        destinationMap.get(fieldName);
+    if (list == null) {
+      list = new ArrayList<Object>(1);
+      destinationMap.put(fieldName, list);
+    }
+    list.add(mapValue);
+
+
+  }
+
+
 }

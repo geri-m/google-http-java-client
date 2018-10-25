@@ -63,6 +63,8 @@ public abstract class Xml<T> {
 
   public abstract void setValue(Object name, Object value);
 
+  public abstract void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue);
+
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
    *
@@ -349,7 +351,7 @@ public abstract class Xml<T> {
             }
             boolean isArray = Types.isArray(fieldType);
             // text content
-            boolean ignore = field == null && destinationMap == null && !(parser instanceof GenericXmlParser);
+            boolean ignore = field == null && !(parser instanceof MapParser) && !(parser instanceof GenericXmlParser);
             // is the field an Enum
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
             // Primitive or Enum
@@ -388,14 +390,14 @@ public abstract class Xml<T> {
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
               isStopped = mapAsClassOrObjectType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass);
+                  parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass, parser);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
                   parameter.customizeParser,  destinationMap, field, arrayValueMap,
                   fieldName, fieldType, isArray, parser);
             } else {
               isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, destinationMap, field, fieldName, fieldType,
+                  parameter.customizeParser, field, fieldName, fieldType,
                   fieldClass, parser);
             }
           }
@@ -469,7 +471,7 @@ public abstract class Xml<T> {
                                                 final CustomizeParser customizeParser,
                                                 final Map<String, Object> destinationMap,
                                                 final Field field, final String fieldName,
-                                                final Type fieldType, final Class<?> fieldClass)
+                                                final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
@@ -490,48 +492,9 @@ public abstract class Xml<T> {
       context.remove(contextSize);
     }
 
-    // Now do the Mapping here.
-    if (destinationMap != null) {
-      // map but not GenericXml: store as ArrayList of elements
-      @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>)
-          destinationMap.get(fieldName);
-      if (list == null) {
-        list = new ArrayList<Object>(1);
-        destinationMap.put(fieldName, list);
-      }
-      list.add(mapValue);
-    } else if (field != null) {
-      // not a map: store in field value
-      FieldInfo fieldInfo = FieldInfo.of(field);
-      if (fieldClass == Object.class) {
-        // field is an Object: store as ArrayList of element maps
-        @SuppressWarnings("unchecked")
-        Collection<Object> list = (Collection<Object>) fieldInfo.getValue(destination);
-        if (list == null) {
-          list = new ArrayList<Object>(1);
-          fieldInfo.setValue(destination, list);
-        }
-        list.add(mapValue);
-      } else {
-        // field is a Map: store as a single element map
-        fieldInfo.setValue(destination, mapValue);
-      }
-    } else {
 
-      if(!(destination instanceof  GenericXml)){
-        throw new RuntimeException("Desintation is not a Gernic XML");
-      }
+    parserObj.mapCollection(fieldClass, fieldName, mapValue);
 
-      // GenericXml: store as ArrayList of elements
-      GenericXml atom = (GenericXml) destination;
-      @SuppressWarnings("unchecked")
-      Collection<Object> list = (Collection<Object>) atom.get(fieldName);
-      if (list == null) {
-        list = new ArrayList<Object>(1);
-        atom.set(fieldName, list);
-      }
-      list.add(mapValue);
-    }
     // Handle as Array
     return isStopped;
   }
@@ -651,7 +614,7 @@ public abstract class Xml<T> {
                                                final Object destination,
                                                final XmlNamespaceDictionary namespaceDictionary,
                                                final CustomizeParser customizeParser,
-                                               final Map<String, Object> destinationMap,
+
                                                final Field field, final String fieldName,
                                                final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
       throws IOException, XmlPullParserException {
@@ -668,9 +631,6 @@ public abstract class Xml<T> {
         customizeParser));
     context.remove(contextSize);
 
-    if(destinationMap != null){
-      throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
-    }
 
     if (field != null) {
       parserObj.setValue(destination, value);
