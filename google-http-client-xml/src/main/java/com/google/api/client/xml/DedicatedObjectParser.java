@@ -13,12 +13,6 @@ public class DedicatedObjectParser extends Xml<Field> {
 
   private Field field;
 
-  public DedicatedObjectParser(final ParserParameter parameter, final Field field, final ClassInfo classInfo) {
-    this(parameter, classInfo);
-    this.field = field;
-  }
-
-
   public DedicatedObjectParser(final ParserParameter parameter, final ClassInfo classInfo) {
     super(parameter, classInfo);
   }
@@ -89,8 +83,6 @@ public class DedicatedObjectParser extends Xml<Field> {
 
   @Override
   public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
-
-
     // not a map: store in field value
     FieldInfo fieldInfo = FieldInfo.of(field);
     if (fieldClass == Object.class) {
@@ -107,5 +99,9 @@ public class DedicatedObjectParser extends Xml<Field> {
     }
   }
 
+  @Override
+  public void mapArrayWithClassTypeSetValue(final Object destination, final Object value){
+    setValue(destination, value);
+  }
 
 }

@@ -13,7 +13,7 @@ public class GenericXmlParser extends Xml<GenericXml> {
 
   protected GenericXml genericXml;
 
-  public GenericXmlParser(final ParserParameter parameter, final ClassInfo classInfo){
+  public GenericXmlParser(final ParserParameter parameter, final ClassInfo classInfo) {
     super(parameter, classInfo);
     this.genericXml = (GenericXml) parameter.destination;
     initForGenericXml();
@@ -21,7 +21,7 @@ public class GenericXmlParser extends Xml<GenericXml> {
 
   @Override
   public void setDestination(final GenericXml genericXml) {
-    this.genericXml = genericXml;
+    throw new RuntimeException("GenericXml Must not be assigned after Constructor");
   }
 
   /**
@@ -90,16 +90,20 @@ public class GenericXmlParser extends Xml<GenericXml> {
   }
 
   @Override
-  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
-
+  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue) {
     // GenericXml: store as ArrayList of elements
-    // GenericXml atom = (GenericXml) destination;
     @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>) genericXml.get(fieldName);
     if (list == null) {
       list = new ArrayList<Object>(1);
       genericXml.set(fieldName, list);
     }
     list.add(mapValue);
+  }
+
+
+  @Override
+  public void mapArrayWithClassTypeSetValue(final Object fieldName, final Object value){
+    setValue(fieldName, value);
   }
 
 }

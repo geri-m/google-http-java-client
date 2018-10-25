@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
@@ -550,16 +551,19 @@ public class XmlTest {
     @Key
     private GenericXml genericXml;
     @Key
-    private XmlEnumTest.AnyEnum anyEnum;
+    private XmlEnumTest.AnyEnum[] anyEnum;
     @Key
     private String[] stringArray;
+
     @Key
-    private Collection<Integer> integerCollection;
+    private List<Integer> integerCollection;
   }
 
   private static final String ALL_TYPE = "<?xml version=\"1.0\"?><any xmlns=\"\">"
       +"<integer/><str/><genericXml/><anyEnum/><stringArray/><integerCollection/>"
       +"</any>";
+
+
 
   @Test
   public void testParseEmptyElements() throws Exception {
@@ -579,6 +583,37 @@ public class XmlTest {
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\"><genericXml /><integer>0</integer></any>", out.toString());
   }
+
+
+
+  private static final String ALL_TYPE_WITH_DATA = "<?xml version=\"1.0\"?><any xmlns=\"\">" +
+      "<anyEnum>ENUM_1</anyEnum><anyEnum>ENUM_2</anyEnum>" +
+      "<genericXml><html><head><title>Title</title></head><body><p>Test</p></body></html></genericXml>" +
+      "<integer>1</integer>" +
+      "<integerCollection>1</integerCollection><integerCollection>2</integerCollection>" +
+      "<str>str1</str>" +
+      "<stringArray>arr1</stringArray><stringArray>arr2</stringArray>" +
+      "</any>";
+
+
+  // no real benefit of this test.
+  @Test
+  public void testParseAllElements() throws Exception {
+    AllType xml = new AllType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ALL_TYPE_WITH_DATA));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ALL_TYPE_WITH_DATA, out.toString());
+  }
+
 
   @Test
   public void testParseIncorrectMapping() throws Exception {

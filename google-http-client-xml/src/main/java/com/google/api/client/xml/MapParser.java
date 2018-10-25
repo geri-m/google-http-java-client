@@ -19,8 +19,8 @@ public class MapParser extends Xml<Map<String,Object>> {
 
 
   @Override
-  public void setDestination(final Map<String, Object> genericXml) {
-    this.destinationMap = destinationMap;
+  public void setDestination(final Map<String, Object> destinationMap) {
+    throw new RuntimeException("Destination Map Must not be assigned after Constructor");
   }
 
   /**
@@ -54,6 +54,7 @@ public class MapParser extends Xml<Map<String,Object>> {
     destinationMap.put((String)name, value);
   }
 
+  @Override
   public  void parseAttributesFromElement() {
     if (parameter.destination != null) {
       int attributeCount = parameter.parser.getAttributeCount();
@@ -74,8 +75,7 @@ public class MapParser extends Xml<Map<String,Object>> {
   }
 
   @Override
-  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue){
-
+  public void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue) {
     // map but not GenericXml: store as ArrayList of elements
     @SuppressWarnings("unchecked") Collection<Object> list = (Collection<Object>)
         destinationMap.get(fieldName);
@@ -86,6 +86,12 @@ public class MapParser extends Xml<Map<String,Object>> {
     list.add(mapValue);
 
 
+  }
+
+
+  @Override
+  public void mapArrayWithClassTypeSetValue(final Object fieldName, final Object value) {
+    setValue(fieldName, value);
   }
 
 

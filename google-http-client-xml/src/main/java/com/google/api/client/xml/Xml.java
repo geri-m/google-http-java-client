@@ -65,6 +65,8 @@ public abstract class Xml<T> {
 
   public abstract void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue);
 
+  public abstract void mapArrayWithClassTypeSetValue(final Object destination, final Object value);
+
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
    *
@@ -238,7 +240,7 @@ public abstract class Xml<T> {
 
     // if there is a class, we want to put the data into, create the class Info for this
     ClassInfo classInfo =
-        destinationMap != null || parameter.destination == null ? null : ClassInfo.of(parameter.destination.getClass());
+        !(parameter.destination instanceof GenericXml) && parameter.destination instanceof Map<?, ?> || parameter.destination == null ? null : ClassInfo.of(parameter.destination.getClass());
 
 
     if(classInfo != null){
@@ -301,12 +303,14 @@ public abstract class Xml<T> {
         case XmlPullParser.TEXT:
           // parse text content
           if (parameter.destination != null) {
+
+
+
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
 
             if ((parser instanceof DedicatedObjectParser)) {
               parser.setDestination(field);
             }
-
 
             sanityCheck(parser, destinationMap, field);
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
@@ -346,12 +350,16 @@ public abstract class Xml<T> {
             // field type is now class, parameterized type, or generic array type
             // resolve a parameterized type to a class
             Class<?> fieldClass = fieldType instanceof Class<?> ? (Class<?>) fieldType : null;
+
+            // check if we have a data Type similar to Collection<String>()
             if (fieldType instanceof ParameterizedType) {
               fieldClass = Types.getRawClass((ParameterizedType) fieldType);
             }
+
+
             boolean isArray = Types.isArray(fieldType);
             // text content
-            boolean ignore = field == null && !(parser instanceof MapParser) && !(parser instanceof GenericXmlParser);
+            boolean ignore = field == null && (parser instanceof DedicatedObjectParser);
             // is the field an Enum
             boolean isEnum = fieldClass != null && fieldClass.isEnum();
             // Primitive or Enum
@@ -374,6 +382,7 @@ public abstract class Xml<T> {
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
                       sanityCheck(parser, destinationMap, field);
+
                       if(field == null){
                         throw new RuntimeException("Field can not be null here");
                       }
@@ -389,16 +398,52 @@ public abstract class Xml<T> {
               // Handle as Map or Nested Class
             } else if (fieldType == null || fieldClass != null
                 && Types.isAssignableToOrFrom(fieldClass, Map.class)) {
-              isStopped = mapAsClassOrObjectType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, destinationMap, field, fieldName, fieldType, fieldClass, parser);
+
+              // we need a dedicate Type for a dedicate Object Parser
+              if (fieldType == null && (parser instanceof DedicatedObjectParser)) {
+                throw new RuntimeException("fieldType can not be null here. ");
+                // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
+              }
+
+              // we need a dedicate class for a dedicate Object Parser
+              if (fieldClass == null && (parser instanceof DedicatedObjectParser)) {
+                throw new RuntimeException("fieldClass can not be null here. ");
+                // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
+              }
+
+              // field could be null here.
+              isStopped = mapAsClassOrObjectType(parameter, fieldName, fieldType, fieldClass, parser);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
+              if (field == null) {
+                throw new RuntimeException("Field can not be null here. ");
+                // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
+              }
+
+              if(parser instanceof MapParser){
+                throw new RuntimeException("MapParser");
+              }
+
+
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
                   parameter.customizeParser,  destinationMap, field, arrayValueMap,
                   fieldName, fieldType, isArray, parser);
             } else {
-              isStopped = mapArrayWithClassType(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser, field, fieldName, fieldType,
-                  fieldClass, parser);
+              if (field == null) {
+                throw new RuntimeException("Field can not be null here. ");
+                // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
+              }
+
+              if(parser instanceof MapParser){
+                throw new RuntimeException("MapParser");
+              }
+
+              if(parser instanceof GenericXmlParser){
+                throw new RuntimeException("GenericXmlParser");
+              }
+
+              // done.
+              isStopped = parser.mapArrayWithClassType(parameter, field, fieldName, fieldType,
+                  fieldClass);
             }
           }
 
@@ -464,32 +509,26 @@ public abstract class Xml<T> {
   }
 
 
-  private static boolean mapAsClassOrObjectType(final XmlPullParser parser,
-                                                final ArrayList<Type> context,
-                                                final Object destination,
-                                                final XmlNamespaceDictionary namespaceDictionary,
-                                                final CustomizeParser customizeParser,
-                                                final Map<String, Object> destinationMap,
-                                                final Field field, final String fieldName,
+  private static boolean mapAsClassOrObjectType(final ParserParameter parameter, final String fieldName,
                                                 final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
-    int contextSize = context.size();
+    int contextSize = parameter.context.size();
     if (fieldType != null) {
-      context.add(fieldType);
+      parameter.context.add(fieldType);
     }
     Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
         ? Types.getMapValueParameter(fieldType) : null;
-    subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
-    isStopped = parseElementInternal(new ParserParameter(parser,
-        context,
+    subValueType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, subValueType);
+    isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+        parameter.context,
         mapValue, // destination; never null
         subValueType,
-        namespaceDictionary,
-        customizeParser));
+        parameter.namespaceDictionary,
+        parameter.customizeParser));
     if (fieldType != null) {
-      context.remove(contextSize);
+      parameter.context.remove(contextSize);
     }
 
 
@@ -586,8 +625,14 @@ public abstract class Xml<T> {
                                       final FieldInfo fieldInfo, final Object elementValue, final Xml parser) {
     // collection: add new element to collection  NOT YET Covered!
     @SuppressWarnings("unchecked")
-    Collection<Object> collectionValue = (Collection<Object>)
-        (field == null ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
+    Collection<Object> collectionValue;
+
+    if (field == null) {
+      collectionValue = (Collection<Object>)destinationMap.get(fieldName);
+    } else {
+      collectionValue =(Collection<Object>)fieldInfo.getValue(destination);
+    }
+
     if (collectionValue == null) {
       collectionValue = Data.newCollectionInstance(fieldType);
 
@@ -609,36 +654,30 @@ public abstract class Xml<T> {
     collectionValue.add(elementValue);
   }
 
-  private static boolean mapArrayWithClassType(final XmlPullParser parser,
-                                               final ArrayList<Type> context,
-                                               final Object destination,
-                                               final XmlNamespaceDictionary namespaceDictionary,
-                                               final CustomizeParser customizeParser,
-
+  // done.
+  private boolean mapArrayWithClassType(final ParserParameter parameter,
                                                final Field field, final String fieldName,
-                                               final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
+                                               final Type fieldType, final Class<?> fieldClass)
       throws IOException, XmlPullParserException {
-
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
     Object value = Types.newInstance(fieldClass);
-    int contextSize = context.size();
-    context.add(fieldType);
-    isStopped = parseElementInternal(new ParserParameter(parser,
-        context,
+    int contextSize = parameter.context.size();
+    parameter.context.add(fieldType);
+    isStopped = parseElementInternal(new ParserParameter(parameter.parser,
+        parameter.context,
         value, // destination; never null.
         null,
-        namespaceDictionary,
-        customizeParser));
-    context.remove(contextSize);
+        parameter.namespaceDictionary,
+        parameter.customizeParser));
+    parameter.context.remove(contextSize);
 
 
     if (field != null) {
-      parserObj.setValue(destination, value);
+      mapArrayWithClassTypeSetValue(parameter.destination, value);
     }  else {
       // we never end up here?
-      parserObj.setValue(fieldName, value);
+      mapArrayWithClassTypeSetValue(fieldName, value);
     }
-
 
     return isStopped;
   }
