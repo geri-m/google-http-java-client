@@ -16,7 +16,9 @@ package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
@@ -25,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import junit.framework.TestCase;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
@@ -50,6 +51,40 @@ public class GenericXmlTest{
           + "<entry gd:etag=\"def\"><title attribute=\"someattribute\">Two</title></entry></feed>";
 
 
+  /**
+   * The purpose of this test is to parse the given XML into a {@link GenericXml} Object that
+   * has no fixed structure. Uses the {@link GenericXmlParser}. Internally the {@link MapParser}
+   * generates a more generic structure of {@link ArrayMap}s
+   */
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testParseToGenericXml() throws Exception {
+    GenericXml xml = new GenericXml();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    ArrayMap<String, String> expected =
+        ArrayMap.of("gd", "http://schemas.google.com/g/2005", "", "http://www.w3.org/2005/Atom");
+    assertEquals(expected, namespaceDictionary.getAliasToUriMap());
+    assertEquals("feed", xml.name);
+    Collection<GenericXml> foo = (Collection<GenericXml>) xml.get("entry");
+    assertEquals(2, foo.size());
+    ArrayMap<String, String> singleElementOne =ArrayMap.of("text()", "One");
+    List<ArrayMap<String, String>> testOne = new ArrayList<ArrayMap<String, String>>();
+    testOne.add(singleElementOne);
+    assertEquals("abc", foo.toArray(new ArrayMap[]{})[0].get("@gd:etag"));
+    assertEquals(testOne, foo.toArray(new ArrayMap[]{})[0].get("title"));
+    ArrayMap<String, String> singleElementTwoAttrib =ArrayMap.of("@attribute", "someattribute", "text()", "Two");
+    //ArrayMap<String, String> singleElementTwoValue =ArrayMap.of();
+    List<ArrayMap<String, String>> testTwo = new ArrayList<ArrayMap<String, String>>();
+    testTwo.add(singleElementTwoAttrib);
+    //testTwo.add(singleElementTwoValue);
+    assertEquals("def", foo.toArray(new ArrayMap[]{})[1].get("@gd:etag"));
+    assertEquals(testTwo, foo.toArray(new ArrayMap[]{})[1].get("title"));
+  }
+
   public static class AnyGenericType {
     @Key("@attr")
     public Object attr;
@@ -62,9 +97,15 @@ public class GenericXmlTest{
       "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<elem><rep attr=\"param1\">rep1</rep><rep attr=\"param2\">rep2</rep><value>content</value></elem></any>";
 
+  /**
+   * The purpose of this test is map a generic XML to an element inside a dedicated Element. This
+   * test uses all three parser available. The {@link DedicatedObjectParser} is used for the outer
+   * attribute, the {@link GenericXmlParser} for the {@link GenericXml} and the {@link MapParser}
+   * of the internal handling.
+   */
   @SuppressWarnings("cast")
   @Test
-  public void testParse_anyGenericType() throws Exception {
+  public void testParseAnyGenericType() throws Exception {
     AnyGenericType xml = new AnyGenericType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_GENERIC_TYPE_XML));
@@ -96,302 +137,287 @@ public class GenericXmlTest{
     assertEquals(ANY_GENERIC_TYPE_XML, out.toString());
   }
 
-  @SuppressWarnings("unchecked")
+
+  /**
+   * ---------------------------------------------------------------------------------------------
+   * here we have the tests from {@link XmlTest}, but the dedicated Objects are derived from
+   * {@link GenericXml}
+   * ---------------------------------------------------------------------------------------------
+   */
+
+
+  public static class SimpleTypeStringGeneric extends GenericXml {
+    @Key("text()")
+    public String value;
+  }
+
+  private static final String SIMPLE_XML = "<any>test</any>";
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
   @Test
-  public void testParse() throws Exception {
-    GenericXml xml = new GenericXml();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(XML));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    ArrayMap<String, String> expected =
-        ArrayMap.of("gd", "http://schemas.google.com/g/2005", "", "http://www.w3.org/2005/Atom");
-    assertEquals(expected, namespaceDictionary.getAliasToUriMap());
-    assertEquals("feed", xml.name);
-    Collection<GenericXml> foo = (Collection<GenericXml>) xml.get("entry");
-    assertEquals(2, foo.size());
-    ArrayMap<String, String> singleElementOne =ArrayMap.of("text()", "One");
-    List<ArrayMap<String, String>> testOne = new ArrayList<ArrayMap<String, String>>();
-    testOne.add(singleElementOne);
-    assertEquals("abc", foo.toArray(new ArrayMap[]{})[0].get("@gd:etag"));
-    assertEquals(testOne, foo.toArray(new ArrayMap[]{})[0].get("title"));
-    ArrayMap<String, String> singleElementTwoAttrib =ArrayMap.of("@attribute", "someattribute", "text()", "Two");
-    //ArrayMap<String, String> singleElementTwoValue =ArrayMap.of();
-    List<ArrayMap<String, String>> testTwo = new ArrayList<ArrayMap<String, String>>();
-    testTwo.add(singleElementTwoAttrib);
-    //testTwo.add(singleElementTwoValue);
-    assertEquals("def", foo.toArray(new ArrayMap[]{})[1].get("@gd:etag"));
-    assertEquals(testTwo, foo.toArray(new ArrayMap[]{})[1].get("title"));
-  }
-
-  private static final String COLLECTION_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>rep1</rep><rep>rep2</rep></any>";
-
-  public static class CollectionTypeAsGenericXml extends GenericXml {
-    @Key
-    public Collection<String> rep;
-  }
-
-  @Test
-  public void testParse_collectionTypeAsGenericXml() throws Exception {
-    CollectionTypeAsGenericXml xml = new CollectionTypeAsGenericXml();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals("rep1", xml.rep.toArray(new String[]{})[0]);
-    assertEquals("rep2", xml.rep.toArray(new String[]{})[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE, out.toString());
-  }
-
-
-  public static class ArrayTypeWithClassTypeAsGenericXml extends GenericXml {
-    @Key
-    public XmlTest.AnyType[] rep;
-  }
-
-  private static final String ARRAY_TYPE_WITH_CLASS_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">" +
-          "<rep><elem>content1</elem><rep>rep10</rep><rep>rep11</rep><value>content</value></rep>" +
-          "<rep><elem>content2</elem><rep>rep20</rep><rep>rep21</rep><value>content</value></rep>" +
-          "<rep><elem>content3</elem><rep>rep30</rep><rep>rep31</rep><value>content</value></rep>" +
-          "</any>";
-
-  @Test
-  public void testParse_arrayTypeWithClassTypeAsGenericXml() throws Exception {
-    ArrayTypeWithClassTypeAsGenericXml xml = new ArrayTypeWithClassTypeAsGenericXml();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ARRAY_TYPE_WITH_CLASS_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertTrue(xml.rep instanceof XmlTest.AnyType[]);
-    XmlTest.AnyType[] rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(3, rep.length);
-    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep[0].elem;
-    assertEquals(1, elem0.size());
-    assertEquals("content1", elem0.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep[1].elem;
-    assertEquals(1, elem1.size());
-    assertEquals("content2", elem1.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep[2].elem;
-    assertEquals(1, elem2.size());
-    assertEquals("content3", elem2.get(0).get("text()"));
-
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ARRAY_TYPE_WITH_CLASS_TYPE, out.toString());
-  }
-
-  private static final String SIMPLE_XML_NUMERIC = "<any xmlns=\"\">1</any>";
-
-  @Test
-  public void testParseSimpleInteger() throws Exception {
-    GenericXml xml = new GenericXml();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals ("text()", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getKey());
-    assertEquals ("1", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getValue());
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">1</any>", out.toString());
-  }
-
-
-  private static final String SIMPLE_XML = "<any xmlns=\"\">test</any>";
-
-  @Test
-  public void testParseSimpleString() throws Exception {
-    GenericXml xml = new GenericXml();
+  public void testParseSimpleTypeAsValueString() throws Exception {
+    SimpleTypeStringGeneric xml = new SimpleTypeStringGeneric();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SIMPLE_XML));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals ("text()", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getKey());
-    assertEquals ("test", ((Map.Entry<String, String>)xml.entrySet().toArray()[0]).getValue());
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
   }
 
-  private static final String COLLECTION_TYPE_WITH_ENUM =
-      "<?xml version=\"1.0\"?><any xmlns=\"\">"
-          + "<rep>ENUM_1</rep><rep>ENUM_2</rep></any>";
-
-  public static class CollectionGenericType extends GenericXml {
-    @Key
-    public Collection<XmlEnumTest.AnyEnum> rep;
+  public static class SimpleTypeNumericGeneric extends GenericXml {
+    @Key("text()")
+    public int value;
   }
 
+  private static final String SIMPLE_XML_NUMERIC = "<any>1</any>";
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
   @Test
-  public void testParse_collectionTypeWithEnum() throws Exception {
-    CollectionGenericType xml = new CollectionGenericType();
+  public void testParseSimpleTypeAsValueInteger() throws Exception {
+    SimpleTypeNumericGeneric xml = new SimpleTypeNumericGeneric();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep.toArray(new XmlEnumTest.AnyEnum[]{})[0]);
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep.toArray(new XmlEnumTest.AnyEnum[]{})[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
+    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
   }
 
-  public static class ArrayGenericType extends GenericXml {
+
+  public static class AnyTypeGeneric extends GenericXml{
+    @Key("@attr")
+    public Object attr;
     @Key
-    public XmlEnumTest.AnyEnum[] rep;
-  }
-
-  @Test
-  public void testParseArrayTypeWithEnum() throws Exception {
-    ArrayGenericType xml = new ArrayGenericType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.length);
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep[0]);
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
-  }
-
-  public static class ArrayOfGenerics {
+    public Object elem;
     @Key
-    public GenericXml[] rep;
-  }
-
-  @Test
-  public void testParseArrayOfGenerics() throws Exception {
-    ArrayOfGenerics xml = new ArrayOfGenerics();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE_WITH_ENUM));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.length);
-    assertEquals("ENUM_1", ((Map.Entry<String, String>)(xml.rep[0]).entrySet().toArray()[0]).getValue());
-    assertEquals("text()", ((Map.Entry<String, String>)(xml.rep[0]).entrySet().toArray()[0]).getKey());
-    assertEquals("ENUM_2", ((Map.Entry<String, String>)(xml.rep[1]).entrySet().toArray()[0]).getValue());
-    assertEquals("text()", ((Map.Entry<String, String>)(xml.rep[1]).entrySet().toArray()[0]).getKey());
-
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
-  }
-
-
-
-  public static class ArrayType extends GenericXml {
+    public Object rep;
     @Key
-    public Map<String, String>[] rep;
+    public ValueTypeGeneric value;
   }
 
-  private static final String ARRAY_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>rep1</rep><rep>rep2</rep></any>";
-
-  @Test
-  public void testParse_arrayType() throws Exception {
-    ArrayType xml = new ArrayType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ARRAY_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    Map<String, String>[] rep = xml.rep;
-    assertEquals(2, rep.length);
-    ArrayMap<String, String> map0 = (ArrayMap<String, String>) rep[0];
-    assertEquals(1, map0.size());
-    assertEquals("rep1", map0.get("text()"));
-    ArrayMap<String, String> map1 = (ArrayMap<String, String>) rep[1];
-    assertEquals(1, map1.size());
-    assertEquals("rep2", map1.get("text()"));
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ARRAY_TYPE, out.toString());
-  }
-
-  public static class ArrayTypeWithPrimitive extends GenericXml {
+  public static class AnyTypeMissingFieldGeneric extends GenericXml {
+    @Key("@attr")
+    public Object attr;
     @Key
-    public int[] rep;
+    public Object elem;
+    @Key
+    public ValueTypeGeneric value;
   }
 
-  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>1</rep><rep>2</rep></any>";
+  public static class AnyTypeAdditionalFieldGeneric extends GenericXml {
+    @Key("@attr")
+    public Object attr;
+    @Key
+    public Object elem;
+    @Key
+    public Object rep;
+    @Key
+    public Object additionalField;
+    @Key
+    public ValueTypeGeneric value;
+  }
 
 
+  public static class ValueTypeGeneric extends GenericXml {
+    @Key("text()")
+    public Object content;
+  }
+
+  private static final String ANY_TYPE_XML =
+      "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<elem>content</elem><rep>rep1</rep><rep>rep2</rep><value>content</value></any>";
+
+  private static final String ANY_TYPE_MISSING_XML ="<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3" +
+      ".org/2005/Atom\"><elem>content</elem><value>content</value></any>";
+
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @SuppressWarnings("cast")
   @Test
-  public void testParse_arrayTypeWithPrimitive() throws Exception {
-    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
+  public void testParseToAnyType() throws Exception {
+    failTestNestedArray(ANY_TYPE_XML);
   }
 
-
-  private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>1<nested>something</nested></rep><rep>2</rep></any>";
-
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @SuppressWarnings("cast")
   @Test
-  public void testParse_arrayTypeWithPrimitiveWithNestedElement() throws Exception {
-    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED));
-  }
-
-  private String testStandardXml(final String xmlString) throws Exception {
-    ArrayTypeWithPrimitive xml = new ArrayTypeWithPrimitive();
+  public void testParseToAnyTypeMissingField() throws Exception {
+    AnyTypeMissingFieldGeneric xml = new AnyTypeMissingFieldGeneric();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(xmlString));
+    parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    int[] rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(2, rep.length);
-    assertEquals(1, rep[0]);
-    assertEquals(2, rep[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    return out.toString();
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
   }
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @SuppressWarnings("cast")
+  @Test
+  public void testParseToAnyTypeAdditionalField() throws Exception {
+    AnyTypeAdditionalFieldGeneric xml = new AnyTypeAdditionalFieldGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
+  }
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @Test
+  public void testParseAnyTypeWithCustomParser() throws Exception {
+    AnyTypeGeneric xml = new AnyTypeGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
+  }
+
+
+  public static class AnyTypePrimitiveIntGeneric extends GenericXml {
+    @Key("text()")
+    public int value;
+    @Key("@attr")
+    public int attr;
+    @Key
+    public int intArray[];
+  }
+
+  private static final String ANY_TYPE_XML_PRIMITIVE_INT =
+      "<?xml version=\"1.0\"?><any attr=\"2\" xmlns=\"http://www.w3.org/2005/Atom\">1<intArray>1</intArray><intArray>2</intArray></any>";
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @Test
+  public void testParseToAnyTypePrimitiveInt() throws Exception {
+    AnyTypePrimitiveIntGeneric xml = new AnyTypePrimitiveIntGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_INT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
+  }
+
+  public static class AnyTypePrimitiveStringGeneric extends GenericXml {
+    @Key("text()")
+    public String value;
+    @Key("@attr")
+    public String attr;
+    @Key
+    public String strArray[];
+  }
+
+  private static final String ANY_TYPE_XML_PRIMITIVE_STR =
+      "<?xml version=\"1.0\"?><any attr=\"2+1\" xmlns=\"http://www.w3.org/2005/Atom\">1+1<strArray>1+1</strArray><strArray>2+1</strArray></any>";
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @Test
+  public void testParseToAnyTypeStringOnly() throws Exception {
+    AnyTypePrimitiveStringGeneric xml = new AnyTypePrimitiveStringGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_STR));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      // good where
+    }
+  }
+
+  private static final String ALL_TYPE = "<?xml version=\"1.0\"?><any xmlns=\"\">"
+      +"<integer/><str/><genericXml/><anyEnum/><stringArray/><integerCollection/>"
+      +"</any>";
+
+
+  /**
+   * This test doesn't fail, as there is not single overlap between the XML and the Destination
+   */
+  @Test
+  public void testParseIncorrectMapping() throws Exception {
+    AnyTypeGeneric xml = new AnyTypeGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ALL_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+    } catch (final Exception e){
+      fail();
+    }
+  }
+
+  private static final String ANY_TYPE_XML_NESTED_ARRAY =
+      "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<elem>content</elem><rep><p>rep1</p><p>rep2</p></rep><rep><p>rep3</p><p>rep4</p></rep><value>content</value></any>";
+
+  /**
+   * The purpose of this test is to try to map a {@link GenericXml} to the String element in the
+   * Object. This will fail.
+   */
+  @SuppressWarnings("cast")
+  @Test
+  public void testParseAnyTypeWithNestedElementArrayMap() throws Exception {
+    failTestNestedArray(ANY_TYPE_XML_NESTED_ARRAY);
+  }
+
+  private void failTestNestedArray(final String anyTypeXmlNestedArray) throws org.xmlpull.v1.XmlPullParserException {
+    AnyTypeGeneric xml = new AnyTypeGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(anyTypeXmlNestedArray));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    try {
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e) {
+      // we are good here
+    }
+  }
+
+
 }

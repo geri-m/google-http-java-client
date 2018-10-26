@@ -24,7 +24,6 @@ import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
@@ -325,9 +324,6 @@ public class XmlTest {
     assertEquals(ANY_TYPE_XML, out.toString());
   }
 
-
-  // this test only ensures, that there is no exception during paring with a NULL destination
-
   /**
    * The purpose of this test is to see, if there is an exception of the parameter 'destination'
    * in {@link Xml#parseElement} is {@code null}. The parser internally will skip mapping of the
@@ -343,7 +339,7 @@ public class XmlTest {
 
   /**
    * The purpose of this test is to see, if parsing works with a {@link Xml.CustomizeParser} works.
-   * The XML will be mapped to {@code AnyType}
+   * The XML will be mapped to {@code AnyTypeGeneric}
    */
   @Test
   public void testParseAnyTypeWithCustomParser() throws Exception {
@@ -444,10 +440,7 @@ public class XmlTest {
 
 
 
-  // needs to go to Different Class.
-
-
-  // Dedicated Testing
+  // Dedicated Testing of Namespaces in XML
 
   private static final String NESTED_NS =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
@@ -538,7 +531,6 @@ public class XmlTest {
    * The purpose of this test is to map multiple different data types in a single test, without
    * data. (explorative)
    */
-  // TODO: Revisit this test.
   @Test
   public void testParseEmptyElements() throws Exception {
     AllType xml = new AllType();
@@ -548,7 +540,7 @@ public class XmlTest {
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
     assertEquals(0, xml.integer);
-    // TODO: Fix this.
+    // TODO: Shouldn't array size == 1? (currently generated via a = new x[1]. tbd).
     assertEquals(1, xml.stringArray.length);
     assertEquals(1, xml.anyEnum.length);
     assertNotNull(xml.genericXml);
@@ -625,9 +617,13 @@ public class XmlTest {
       "<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<elem>content</elem><rep><p>rep1</p><p>rep2</p></rep><rep><p>rep3</p><p>rep4</p></rep><value>content</value></any>";
 
+  /**
+   * Purpose of this test is to map the sub elements of an {@link ArrayMap} again to an {@link
+   * ArrayMap} using the {@link MapParser}.
+   */
   @SuppressWarnings("cast")
   @Test
-  public void testParseAnyTypeWithNestedArray() throws Exception {
+  public void testParseAnyTypeWithNestedElementArrayMap() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML_NESTED_ARRAY));
