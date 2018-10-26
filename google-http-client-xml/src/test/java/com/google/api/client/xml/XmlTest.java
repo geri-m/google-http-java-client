@@ -26,7 +26,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
@@ -38,6 +37,164 @@ import org.xmlpull.v1.XmlSerializer;
  * @author Gerald Madlmayr
  */
 public class XmlTest {
+
+
+  public static class SimpleTypeString {
+    @Key("text()")
+    public String value;
+  }
+
+  private static final String SIMPLE_XML = "<any>test</any>";
+
+  /**
+   * The purpose of this test is to map a single element to a single member variable of a
+   * destination object; in this case it is a string object; no namespace used. The mapping
+   * will be done via a {@link DedicatedObjectParser}
+   */
+  @Test
+  public void testParseSimpleTypeAsValueString() throws Exception {
+    SimpleTypeString xml = new SimpleTypeString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals("test", xml.value);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
+  }
+
+  public static class SimpleTypeNumeric {
+    @Key("text()")
+    public int value;
+  }
+
+  private static final String SIMPLE_XML_NUMERIC = "<any>1</any>";
+
+  /**
+   * The purpose of this test is to map a single element to a single member variable of a
+   * destination object; in this is it is not an object but a primitive data type; no namespace
+   * used. The mapping will be done via a {@link DedicatedObjectParser}
+   */
+  @Test
+  public void testParseSimpleTypeAsValueInteger() throws Exception {
+    SimpleTypeNumeric xml = new SimpleTypeNumeric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertEquals(1, xml.value);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">1</any>", out.toString());
+  }
+
+
+  private static final String START_WITH_TEXT = "<?xml version=\"1.0\"?>start_with_text</any>";
+
+  /**
+   * Negative test to check for text without a start eleemtn
+   */
+  @Test
+  public void testWithTextFail() throws Exception {
+    SimpleTypeString xml = new SimpleTypeString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_TEXT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("only whitespace content allowed before start tag and not s (position: START_DOCUMENT seen <?xml version=\"1.0\"?>s... @1:22)", e.getMessage().trim());
+    }
+  }
+
+  private static final String MISSING_END_ELEMENT = "<?xml version=\"1.0\"?><any xmlns=\"\">missing_end_element";
+
+  /**
+   * Negative test to check for messing end Element
+   */
+  @Test
+  public void testWithMissingEndElementFail() throws Exception {
+    SimpleTypeString xml = new SimpleTypeString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(MISSING_END_ELEMENT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("no more data available - expected end tag </any> to close start tag <any> from line 1, parser stopped on START_TAG seen ...<any " +
+          "xmlns=\"\">missing_end_element... @1:54", e.getMessage().trim());
+    }
+  }
+
+  private static final String START_WITH_END_ELEMENT = "<?xml version=\"1.0\"?></p><any xmlns=\"\">start_with_end_elemtn</any>";
+
+  /**
+   * Negative test with that start with a end element tag
+   */
+  @Test
+  public void testWithEndElementStarting() throws Exception {
+    SimpleTypeString xml = new SimpleTypeString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_END_ELEMENT));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("expected start tag name and not / (position: START_DOCUMENT seen <?xml version=\"1.0\"?></... @1:23)", e.getMessage().trim());
+    }
+  }
+
+  private static final String START_WITH_END_ELEMENT_NESTED = "<?xml version=\"1.0\"?><any xmlns=\"\"></p>start_with_end_element_nested</any>";
+
+  /**
+   * Negative test with that start with a end element tag nested in an started element
+   */
+
+  @Test
+  public void testWithEndElementNested() throws Exception {
+    SimpleTypeString xml = new SimpleTypeString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(START_WITH_END_ELEMENT_NESTED));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("end tag name </p> must match start tag name <any> from line 1 (position: START_TAG seen ...<any xmlns=\"\"></p>... @1:39)", e.getMessage().trim());
+    }
+  }
+
+  /**
+   * Negative test that maps a string to an integer and causes an exception
+   */
+
+  @Test
+  public void testFailMappingOfDataType() throws Exception {
+    SimpleTypeNumeric xml = new SimpleTypeNumeric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(SIMPLE_XML));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
+    try{
+      Xml.parseElement(parser, xml, namespaceDictionary, null);
+      fail();
+    } catch (final Exception e){
+      assertEquals("For input string: \"test\"", e.getMessage().trim());
+    }
+  }
+
+
 
   public static class AnyType {
     @Key("@attr")
@@ -85,9 +242,16 @@ public class XmlTest {
   private static final String ANY_TYPE_MISSING_XML ="<?xml version=\"1.0\"?><any attr=\"value\" xmlns=\"http://www.w3" +
       ".org/2005/Atom\"><elem>content</elem><value>content</value></any>";
 
+
+  /**
+   * The purpose of this tests it to test the {@link Key} Annotation for mapping of elements and
+   * attributes. All elements/att are matched. Dedicated elements 'any' and 'value' are matched by
+   * {@link DedicatedObjectParser}, whereas the {@link Object} elements are matched by a more
+   * general {@link MapParser}
+   */
   @SuppressWarnings("cast")
   @Test
-  public void testParse_anyType() throws Exception {
+  public void testParseToAnyType() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
@@ -106,10 +270,16 @@ public class XmlTest {
     assertEquals(ANY_TYPE_XML, out.toString());
   }
 
-
+  /**
+   * The purpose of this tests it to test the {@code Key} Annotation for mapping of elements and
+   * attributes. The matched Objects misses some field that are present int the XML ('elem' is
+   * missing and therefore ignored). Dedicated elements 'any' and 'value' are matched by
+   * {@link DedicatedObjectParser}, whereas the {@link Object} elements are matched by a more
+   * general {@link MapParser}
+   */
   @SuppressWarnings("cast")
   @Test
-  public void testParse_anyTypeMissingField() throws Exception {
+  public void testParseToAnyTypeMissingField() throws Exception {
     AnyTypeMissingField xml = new AnyTypeMissingField();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
@@ -127,10 +297,15 @@ public class XmlTest {
     assertEquals(ANY_TYPE_MISSING_XML, out.toString());
   }
 
-
+  /**
+   * The purpose of this tests it to test the {@link Key} Annotation for mapping of elements and
+   * attributes. The matched Objects has an additional field, that will not be used and stays
+   * {@code null}. Dedicated elements 'any' and 'value' are matched by {@link DedicatedObjectParser},
+   * whereas the {@link Object} elements are matched by a more general {@link MapParser}
+   */
   @SuppressWarnings("cast")
   @Test
-  public void testParse_anyTypeAdditionalField() throws Exception {
+  public void testparseToAnyTypeAdditionalField() throws Exception {
     AnyTypeAdditionalField xml = new AnyTypeAdditionalField();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
@@ -152,16 +327,26 @@ public class XmlTest {
 
 
   // this test only ensures, that there is no exception during paring with a NULL destination
+
+  /**
+   * The purpose of this test is to see, if there is an exception of the parameter 'destination'
+   * in {@link Xml#parseElement} is {@code null}. The parser internally will skip mapping of the
+   * XML structure, but will parse it anyway.
+   */
   @Test
-  public void testParse_anyTypeWithNullDestination() throws Exception {
+  public void testParseToAnyTypeWithNullDestination() throws Exception {
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, null, namespaceDictionary, null);
   }
 
+  /**
+   * The purpose of this test is to see, if parsing works with a {@link Xml.CustomizeParser} works.
+   * The XML will be mapped to {@code AnyType}
+   */
   @Test
-  public void testParse_anyTypeWithCustomParser() throws Exception {
+  public void testParseAnyTypeWithCustomParser() throws Exception {
     AnyType xml = new AnyType();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
@@ -181,149 +366,88 @@ public class XmlTest {
   }
 
 
-  public static class AnyTypePrimitive {
+  public static class AnyTypePrimitiveInt {
     @Key("text()")
     public int value;
+    @Key("@attr")
+    public int attr;
+    @Key
+    public int intArray[];
   }
 
-  private static final String ANY_TYPE_XML_PRIMITIVE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">1</any>";
+  private static final String ANY_TYPE_XML_PRIMITIVE_INT =
+      "<?xml version=\"1.0\"?><any attr=\"2\" xmlns=\"http://www.w3.org/2005/Atom\">1<intArray>1</intArray><intArray>2</intArray></any>";
 
+  /**
+   * The purpose of this test it to parse elements which will be mapped to a Java Primitive Type.
+   * Therefore ints are mapped to attributes, elements and element arrays. The {@link
+   * DedicatedObjectParser} is handling the mapping in one run, as on "new" non-Primitive Objects
+   * are in the Destination Object
+   */
   @Test
-  public void testParse_anyTypePrimitive() throws Exception {
-    AnyTypePrimitive xml = new AnyTypePrimitive();
+  public void testParseToAnyTypePrimitiveInt() throws Exception {
+    AnyTypePrimitiveInt xml = new AnyTypePrimitiveInt();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE));
+    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_INT));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
     assertEquals(1, xml.value);
+    assertEquals(2, xml.attr);
+    assertEquals(2, xml.intArray.length);
+    assertEquals(1, xml.intArray[0]);
+    assertEquals(2, xml.intArray[1]);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ANY_TYPE_XML_PRIMITIVE, out.toString());
+    assertEquals(ANY_TYPE_XML_PRIMITIVE_INT, out.toString());
   }
 
-  public static class ArrayType extends GenericXml {
+  public static class AnyTypePrimitiveString {
+    @Key("text()")
+    public String value;
+    @Key("@attr")
+    public String attr;
     @Key
-    public Map<String, String>[] rep;
+    public String strArray[];
   }
 
-  private static final String ARRAY_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>rep1</rep><rep>rep2</rep></any>";
+  private static final String ANY_TYPE_XML_PRIMITIVE_STR =
+      "<?xml version=\"1.0\"?><any attr=\"2+1\" xmlns=\"http://www.w3.org/2005/Atom\">1+1<strArray>1+1</strArray><strArray>2+1</strArray></any>";
 
+  /**
+   * The purpose of this test it to parse elements which will be mapped to a Java Primitive Type.
+   * Therefore ints are mapped to attributes, elements and element arrays. The {@link
+   * DedicatedObjectParser} is handling the mapping in one run, as on "new" non-Primitive Objects
+   * are in the Destination Object
+   */
   @Test
-  public void testParse_arrayType() throws Exception {
-    ArrayType xml = new ArrayType();
+  public void testParseToAnyTypeStringOnly() throws Exception {
+    AnyTypePrimitiveString xml = new AnyTypePrimitiveString();
     XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ARRAY_TYPE));
+    parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_STR));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    Map<String, String>[] rep = xml.rep;
-    assertEquals(2, rep.length);
-    ArrayMap<String, String> map0 = (ArrayMap<String, String>) rep[0];
-    assertEquals(1, map0.size());
-    assertEquals("rep1", map0.get("text()"));
-    ArrayMap<String, String> map1 = (ArrayMap<String, String>) rep[1];
-    assertEquals(1, map1.size());
-    assertEquals("rep2", map1.get("text()"));
+    Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
+    assertEquals("1+1", xml.value);
+    assertEquals("2+1", xml.attr);
+    assertEquals(2, xml.strArray.length);
+    assertEquals("1+1", xml.strArray[0]);
+    assertEquals("2+1", xml.strArray[1]);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ARRAY_TYPE, out.toString());
-  }
-
-  public static class ArrayTypeWithPrimitive extends GenericXml {
-    @Key
-    public int[] rep;
-  }
-
-  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>1</rep><rep>2</rep></any>";
-
-
-  @Test
-  public void testParse_arrayTypeWithPrimitive() throws Exception {
-    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
+    assertEquals(ANY_TYPE_XML_PRIMITIVE_STR, out.toString());
   }
 
 
-  private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>1<nested>something</nested></rep><rep>2</rep></any>";
 
-  @Test
-  public void testParse_arrayTypeWithPrimitiveWithNestedElement() throws Exception {
-    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED));
-  }
+  // needs to go to Different Class.
 
-  private String testStandardXml(final String xmlString) throws Exception {
-    ArrayTypeWithPrimitive xml = new ArrayTypeWithPrimitive();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(xmlString));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    int[] rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(2, rep.length);
-    assertEquals(1, rep[0]);
-    assertEquals(2, rep[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    return out.toString();
-  }
 
-  public static class ArrayTypeWithClassType {
-    @Key
-    public AnyType[] rep;
-  }
-
-  private static final String ARRAY_TYPE_WITH_CLASS_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">" +
-          "<rep><elem>content1</elem><rep>rep10</rep><rep>rep11</rep><value>content</value></rep>" +
-          "<rep><elem>content2</elem><rep>rep20</rep><rep>rep21</rep><value>content</value></rep>" +
-          "<rep><elem>content3</elem><rep>rep30</rep><rep>rep31</rep><value>content</value></rep>" +
-          "</any>";
-
-  @Test
-  public void testParse_arrayTypeWithClassType() throws Exception {
-    ArrayTypeWithClassType xml = new ArrayTypeWithClassType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(ARRAY_TYPE_WITH_CLASS_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertTrue(xml.rep instanceof AnyType[]);
-    AnyType[] rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(3, rep.length);
-    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep[0].elem;
-    assertEquals(1, elem0.size());
-    assertEquals("content1", elem0.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep[1].elem;
-    assertEquals(1, elem1.size());
-    assertEquals("content2", elem1.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep[2].elem;
-    assertEquals(1, elem2.size());
-    assertEquals("content3", elem2.get(0).get("text()"));
-
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(ARRAY_TYPE_WITH_CLASS_TYPE, out.toString());
-  }
+  // Dedicated Testing
 
   private static final String NESTED_NS =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
@@ -336,7 +460,7 @@ public class XmlTest {
           + "</app:edited></any>";
 
   @Test
-  public void testParse_nestedNs() throws Exception {
+  public void testParseOfNestedNs() throws Exception {
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(NESTED_NS));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
@@ -351,177 +475,24 @@ public class XmlTest {
     assertEquals(NESTED_NS_SERIALIZED, out.toString());
   }
 
-  private static final String COLLECTION_TYPE =
-      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
-          + "<rep>rep1</rep><rep>rep2</rep></any>";
-
-  public static class CollectionType {
-    @Key
-    public Collection<String> rep;
-  }
-
-  @Test
-  public void testParse_collectionType() throws Exception {
-    CollectionType xml = new CollectionType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(COLLECTION_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals("rep1", xml.rep.toArray(new String[]{})[0]);
-    assertEquals("rep2", xml.rep.toArray(new String[]{})[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(COLLECTION_TYPE, out.toString());
-  }
-
-  public static class SimpleType {
-    @Key("text()")
-    public String value;
-  }
-
-  private static final String SIMPLE_XML = "<any>test</any>";
-
-  @Test
-  public void testParseSimpleTypeAsValueString() throws Exception {
-    SimpleType xml = new SimpleType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(SIMPLE_XML));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals("test", xml.value);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">test</any>", out.toString());
-  }
-
-  public static class SimpleTypeNumeric {
-    @Key("text()")
-    public int value;
-  }
-
-  private static final String SIMPLE_XML_NUMERIC = "<any>1</any>";
-
-  @Test
-  public void testParseSimpleTypeAsValueInteger() throws Exception {
-    SimpleTypeNumeric xml = new SimpleTypeNumeric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(1, xml.value);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals("<?xml version=\"1.0\"?><any xmlns=\"\">1</any>", out.toString());
-  }
-
-
-  private static final String START_WITH_TEXT = "<?xml version=\"1.0\"?>start_with_text</any>";
-
-  @Test
-  public void testWithTextFail() throws Exception {
-    SimpleType xml = new SimpleType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(START_WITH_TEXT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      assertEquals("only whitespace content allowed before start tag and not s (position: START_DOCUMENT seen <?xml version=\"1.0\"?>s... @1:22)", e.getMessage().trim());
-    }
-  }
-
-  private static final String START_MISSING_END_ELEMENT = "<?xml version=\"1.0\"?><any xmlns=\"\">missing_end_element";
-
-  @Test
-  public void testWithMissingEndElementFail() throws Exception {
-    SimpleType xml = new SimpleType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(START_MISSING_END_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      assertEquals("no more data available - expected end tag </any> to close start tag <any> from line 1, parser stopped on START_TAG seen ...<any " +
-          "xmlns=\"\">missing_end_element... @1:54", e.getMessage().trim());
-    }
-  }
-
-  private static final String START_WITH_END_ELEMENT = "<?xml version=\"1.0\"?></p><any xmlns=\"\">start_with_end_elemtn</any>";
-
-  @Test
-  public void testWithEndElementStarting() throws Exception {
-    SimpleType xml = new SimpleType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(START_WITH_END_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      assertEquals("expected start tag name and not / (position: START_DOCUMENT seen <?xml version=\"1.0\"?></... @1:23)", e.getMessage().trim());
-    }
-  }
-
-  private static final String START_WITH_END_ELEMENT_NESTED = "<?xml version=\"1.0\"?><any xmlns=\"\"></p>start_with_end_element_nested</any>";
-
-
-  @Test
-  public void testWithEndElementNested() throws Exception {
-    SimpleType xml = new SimpleType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(START_WITH_END_ELEMENT_NESTED));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      assertEquals("end tag name </p> must match start tag name <any> from line 1 (position: START_TAG seen ...<any xmlns=\"\"></p>... @1:39)", e.getMessage().trim());
-    }
-  }
-
-
-  @Test
-  public void testFailMappingOfDataType() throws Exception {
-    SimpleTypeNumeric xml = new SimpleTypeNumeric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(SIMPLE_XML));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      assertEquals("For input string: \"test\"", e.getMessage().trim());
-    }
-  }
 
   private static class AnyTypeInf {
     @Key
-    private double dblInfNeg;
+    public double dblInfNeg;
     @Key
-    private double dblInfPos;
+    public double dblInfPos;
     @Key
-    private float fltInfNeg;
+    public float fltInfNeg;
     @Key
-    private float fltInfPos;
+    public float fltInfPos;
   }
 
   private static final String INF_TEST = "<?xml version=\"1.0\"?><any xmlns=\"\"><dblInfNeg>-INF</dblInfNeg><dblInfPos>INF</dblInfPos><fltInfNeg>-INF</fltInfNeg><fltInfPos>INF</fltInfPos></any>";
 
+  /**
+   * The purpose of this test is to map the Infinity values of both doubles and floats. This
+   * uses the {@link DedicatedObjectParser} only
+   */
   @Test
   public void testParseInfiniteValues() throws Exception {
     AnyTypeInf xml = new AnyTypeInf();
@@ -533,7 +504,7 @@ public class XmlTest {
     assertEquals(Double.NEGATIVE_INFINITY, xml.dblInfNeg, 0.0001);
     assertEquals(Double.POSITIVE_INFINITY, xml.dblInfPos, 0.0001);
     assertEquals(Float.NEGATIVE_INFINITY, xml.fltInfNeg, 0.0001);
-    assertEquals(Float.POSITIVE_INFINITY, xml.dblInfPos, 0.0001);
+    assertEquals(Float.POSITIVE_INFINITY, xml.fltInfPos, 0.0001);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -545,18 +516,17 @@ public class XmlTest {
 
   private static class AllType {
     @Key
-    private int integer;
+    public int integer;
     @Key
-    private String str;
+    public String str;
     @Key
-    private GenericXml genericXml;
+    public GenericXml genericXml;
     @Key
-    private XmlEnumTest.AnyEnum[] anyEnum;
+    public XmlEnumTest.AnyEnum[] anyEnum;
     @Key
-    private String[] stringArray;
-
+    public String[] stringArray;
     @Key
-    private List<Integer> integerCollection;
+    public List<Integer> integerCollection;
   }
 
   private static final String ALL_TYPE = "<?xml version=\"1.0\"?><any xmlns=\"\">"
@@ -564,7 +534,11 @@ public class XmlTest {
       +"</any>";
 
 
-
+  /**
+   * The purpose of this test is to map multiple different data types in a single test, without
+   * data. (explorative)
+   */
+  // TODO: Revisit this test.
   @Test
   public void testParseEmptyElements() throws Exception {
     AllType xml = new AllType();
@@ -574,8 +548,12 @@ public class XmlTest {
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
     assertEquals(0, xml.integer);
+    // TODO: Fix this.
+    assertEquals(1, xml.stringArray.length);
+    assertEquals(1, xml.anyEnum.length);
     assertNotNull(xml.genericXml);
     assertNotNull(xml.integerCollection);
+    assertNull(xml.str);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -596,7 +574,10 @@ public class XmlTest {
       "</any>";
 
 
-  // no real benefit of this test.
+  /**
+   * The purpose of this test is to map multiple different data types in a single test, with
+   * data. (explorative)
+   */
   @Test
   public void testParseAllElements() throws Exception {
     AllType xml = new AllType();
@@ -614,6 +595,10 @@ public class XmlTest {
     assertEquals(ALL_TYPE_WITH_DATA, out.toString());
   }
 
+  /**
+   * The purpose of this tests is to map a completely unrelated XML to a given destination object.
+   * (explorative)
+   */
 
   @Test
   public void testParseIncorrectMapping() throws Exception {

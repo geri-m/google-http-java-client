@@ -315,4 +315,83 @@ public class GenericXmlTest{
     assertEquals(COLLECTION_TYPE_WITH_ENUM, out.toString());
   }
 
+
+
+  public static class ArrayType extends GenericXml {
+    @Key
+    public Map<String, String>[] rep;
+  }
+
+  private static final String ARRAY_TYPE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>rep1</rep><rep>rep2</rep></any>";
+
+  @Test
+  public void testParse_arrayType() throws Exception {
+    ArrayType xml = new ArrayType();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(ARRAY_TYPE));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    Map<String, String>[] rep = xml.rep;
+    assertEquals(2, rep.length);
+    ArrayMap<String, String> map0 = (ArrayMap<String, String>) rep[0];
+    assertEquals(1, map0.size());
+    assertEquals("rep1", map0.get("text()"));
+    ArrayMap<String, String> map1 = (ArrayMap<String, String>) rep[1];
+    assertEquals(1, map1.size());
+    assertEquals("rep2", map1.get("text()"));
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(ARRAY_TYPE, out.toString());
+  }
+
+  public static class ArrayTypeWithPrimitive extends GenericXml {
+    @Key
+    public int[] rep;
+  }
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1</rep><rep>2</rep></any>";
+
+
+  @Test
+  public void testParse_arrayTypeWithPrimitive() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
+  }
+
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1<nested>something</nested></rep><rep>2</rep></any>";
+
+  @Test
+  public void testParse_arrayTypeWithPrimitiveWithNestedElement() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED));
+  }
+
+  private String testStandardXml(final String xmlString) throws Exception {
+    ArrayTypeWithPrimitive xml = new ArrayTypeWithPrimitive();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(xmlString));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    int[] rep = xml.rep;
+    assertNotNull(rep);
+    assertEquals(2, rep.length);
+    assertEquals(1, rep[0]);
+    assertEquals(2, rep[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    return out.toString();
+  }
 }
