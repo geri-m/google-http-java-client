@@ -8,6 +8,8 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
@@ -222,6 +224,34 @@ public class XmlListTest {
     serializer.setOutput(out, "UTF-8");
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(MULTIPLE_STRING_ELEMENT, out.toString());
+  }
+
+
+
+  private static final String MULTIPLE_STRING_ELEMENT_IN_COLLECTION =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<coll><rep>rep1</rep><rep>rep2</rep></coll></any>";
+
+  public static class AnyTypeWithCollectionString {
+    @Key
+    public CollectionTypeString coll;
+  }
+
+  @Test
+  public void testParseAnyTypeWithACollectionString() throws Exception {
+    AnyTypeWithCollectionString xml = new AnyTypeWithCollectionString();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(MULTIPLE_STRING_ELEMENT_IN_COLLECTION));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    assertNotNull(xml.coll);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    assertEquals(MULTIPLE_STRING_ELEMENT_IN_COLLECTION, out.toString());
   }
 
 

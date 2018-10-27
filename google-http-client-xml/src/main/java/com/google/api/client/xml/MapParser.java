@@ -12,9 +12,10 @@ public class MapParser extends Xml<Map<String,Object>> {
 
   protected Map<String, Object> destinationMap;
 
-  public MapParser(final ParserParameter parameter, final Map<String, Object> destinationMap, final ClassInfo classInfo) {
+  @SuppressWarnings("unchecked")
+  public MapParser(final ParserParameter parameter, final ClassInfo classInfo) {
     super(parameter, classInfo);
-    this.destinationMap = destinationMap;
+    this.destinationMap = (Map) parameter.destination;
   }
 
 

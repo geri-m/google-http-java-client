@@ -8,6 +8,8 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
@@ -37,7 +39,6 @@ public class GenericXmlListTest {
     @Key
     public List<XmlTest.AnyType> rep;
   }
-
 
   public static class MultiGenericWithClassType  {
     @Key

@@ -233,29 +233,9 @@ public abstract class Xml<T> {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
 
-    // if the destination is GenericXML and the destination is a Map, create a destination Map.
-    @SuppressWarnings("unchecked")
-    Map<String, Object> destinationMap =
-        !(parameter.destination instanceof GenericXml) && parameter.destination instanceof Map<?, ?> ? Map.class.cast(parameter.destination) : null;
-
     // if there is a class, we want to put the data into, create the class Info for this
     ClassInfo classInfo =
         !(parameter.destination instanceof GenericXml) && parameter.destination instanceof Map<?, ?> || parameter.destination == null ? null : ClassInfo.of(parameter.destination.getClass());
-
-
-    if(classInfo != null){
-      if(destinationMap != null)
-        throw new RuntimeException("destinationMap XML Must be null!");
-    }
-
-
-
-    if(destinationMap != null){
-      if(classInfo != null)
-        throw new RuntimeException("classInfo Musst be null!");
-
-    }
-
 
 
     // if we are the very beginning of the document, get the next element/event
@@ -269,7 +249,7 @@ public abstract class Xml<T> {
     final Xml parser;
     // if we have a dedicated destination
     if (!(parameter.destination instanceof GenericXml) &&  parameter.destination instanceof Map<?, ?>) {
-      parser = new MapParser(parameter,  destinationMap, classInfo);
+      parser = new MapParser(parameter,   classInfo);
     } else if (parameter.destination instanceof GenericXml) {
       // if we have a generic XML, set the namespace
       parser = new GenericXmlParser(parameter,  classInfo);
@@ -303,16 +283,13 @@ public abstract class Xml<T> {
         case XmlPullParser.TEXT:
           // parse text content
           if (parameter.destination != null) {
-
-
-
             field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
 
             if ((parser instanceof DedicatedObjectParser)) {
               parser.setDestination(field);
             }
 
-            sanityCheck(parser, destinationMap, field);
+            sanityCheck(parser,  field);
             parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 
             mapTextToElementValue(parameter, parser, field, TEXT_CONTENT);
@@ -341,7 +318,7 @@ public abstract class Xml<T> {
             // fetch the field from the classInfo
             field = classInfo == null ? null : classInfo.getField(fieldName);
 
-            if((parser instanceof DedicatedObjectParser)){
+            if ((parser instanceof DedicatedObjectParser)) {
               parser.setDestination(field);
             }
 
@@ -355,7 +332,6 @@ public abstract class Xml<T> {
             if (fieldType instanceof ParameterizedType) {
               fieldClass = Types.getRawClass((ParameterizedType) fieldType);
             }
-
 
             boolean isArray = Types.isArray(fieldType);
             // text content
@@ -381,9 +357,9 @@ public abstract class Xml<T> {
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-                      sanityCheck(parser, destinationMap, field);
+                      sanityCheck(parser, field);
 
-                      if(field == null){
+                      if (field == null) {
                         throw new RuntimeException("Field can not be null here");
                       }
 
@@ -406,6 +382,7 @@ public abstract class Xml<T> {
               }
 
               // we need a dedicate class for a dedicate Object Parser
+              // THis is ALWAYS false => DedicatedObjectParser always ha a fieldClass
               if (fieldClass == null && (parser instanceof DedicatedObjectParser)) {
                 throw new RuntimeException("fieldClass can not be null here. ");
                 // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
@@ -419,25 +396,26 @@ public abstract class Xml<T> {
                 // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
               }
 
-              if(parser instanceof MapParser){
+              if (parser instanceof MapParser) {
                 throw new RuntimeException("MapParser");
               }
 
-
+              // Destination Map is always NULL!
               isStopped = mapAsArrayOrCollection(parameter.parser, parameter.context, parameter.destination, parameter.namespaceDictionary,
-                  parameter.customizeParser,  destinationMap, field, arrayValueMap,
+                  parameter.customizeParser,  field, arrayValueMap,
                   fieldName, fieldType, isArray, parser);
             } else {
+
               if (field == null) {
                 throw new RuntimeException("Field can not be null here. ");
                 // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
               }
 
-              if(parser instanceof MapParser){
+              if (parser instanceof MapParser) {
                 throw new RuntimeException("MapParser");
               }
 
-              if(parser instanceof GenericXmlParser){
+              if (parser instanceof GenericXmlParser) {
                 throw new RuntimeException("GenericXmlParser");
               }
 
@@ -448,7 +426,7 @@ public abstract class Xml<T> {
           }
 
           // Never reached while Testing
-          if(parameter.parser.getEventType() == XmlPullParser.END_DOCUMENT){
+          if (parameter.parser.getEventType() == XmlPullParser.END_DOCUMENT) {
             isStopped = true;
           }
 
@@ -474,32 +452,18 @@ public abstract class Xml<T> {
     return isStopped;
   }
 
-  private static void sanityCheck(final Xml parser,  final Map<String, Object> destinationMap, final Field field) {
+  private static void sanityCheck(final Xml parser,  final Field field) {
     if (field != null) {
-
-      if (!(parser instanceof DedicatedObjectParser))
+      if (!(parser instanceof DedicatedObjectParser)) {
         throw new RuntimeException("Incorrect Parser");
-
-
-      if (destinationMap != null)
-        throw new RuntimeException("destinationMap XML Must be null!");
-    }
-
-
-    if (destinationMap != null) {
-
-      if (!(parser instanceof MapParser))
-        throw new RuntimeException("Incorrect Parser");
-
-      if (field != null)
-        throw new RuntimeException("field Must be null!");
+      }
 
     }
   }
 
   private static void mapTextToElementValue(final ParserParameter parameter, final Xml parser, final Field field, final String textContent) {
     if (field != null) {
-      if(!(parser instanceof DedicatedObjectParser)){
+      if (!(parser instanceof DedicatedObjectParser)) {
         throw new RuntimeException("DedicatedObjectParser required");
       }
       parser.parseAttributeOrTextContent(parameter.parser.getText(),  parameter.destination);
@@ -544,7 +508,6 @@ public abstract class Xml<T> {
                                                 final XmlNamespaceDictionary namespaceDictionary,
                                                 final CustomizeParser customizeParser,
 
-                                                final Map<String, Object> destinationMap,
                                                 final Field field,
                                                 final ArrayValueMap arrayValueMap,
                                                 final String fieldName,
@@ -562,6 +525,7 @@ public abstract class Xml<T> {
     Class<?> subFieldClass =
         subFieldType instanceof Class<?> ? (Class<?>) subFieldType : null;
     if (subFieldType instanceof ParameterizedType) {
+      // how do we get there?
       subFieldClass = Types.getRawClass((ParameterizedType) subFieldType);
     }
     boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
@@ -608,37 +572,29 @@ public abstract class Xml<T> {
     if (isArray) {
       // array field: add new element to array value map
       if (field == null) {
+        // can we end up here?
         arrayValueMap.put(fieldName, rawArrayComponentType, elementValue);
       } else {
         arrayValueMap.put(field, rawArrayComponentType, elementValue);
       }
     } else {
-      mapToCollection(destination,  destinationMap, field, fieldName, fieldType,
+
+      mapToCollection(destination,   field, fieldName, fieldType,
           fieldInfo, elementValue, parserObj);
     }
     return isStopped;
   }
 
   private static void mapToCollection(final Object destination,
-                                      final Map<String, Object> destinationMap, final Field field,
+                                      final Field field,
                                       final String fieldName, final Type fieldType,
                                       final FieldInfo fieldInfo, final Object elementValue, final Xml parser) {
     // collection: add new element to collection  NOT YET Covered!
     @SuppressWarnings("unchecked")
-    Collection<Object> collectionValue;
-
-    if (field == null) {
-      collectionValue = (Collection<Object>)destinationMap.get(fieldName);
-    } else {
-      collectionValue =(Collection<Object>)fieldInfo.getValue(destination);
-    }
+    Collection<Object> collectionValue = (Collection<Object>)fieldInfo.getValue(destination);
 
     if (collectionValue == null) {
       collectionValue = Data.newCollectionInstance(fieldType);
-
-      if(destinationMap != null){
-        throw new RuntimeException(" This should not happen, as Array != destinationMap. Remove if problem");
-      }
 
       // super hacky for the moment.
       if (field != null && parser instanceof DedicatedObjectParser) {
@@ -646,10 +602,9 @@ public abstract class Xml<T> {
       } else if (parser instanceof GenericXmlParser) {
         parser.setValue(fieldName, collectionValue);
       } else {
-        throw new RuntimeException("We must not endup here");
+        throw new RuntimeException("We must not end up here");
         // parser.setValue(fieldName, collectionValue);
       }
-
     }
     collectionValue.add(elementValue);
   }

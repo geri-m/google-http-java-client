@@ -304,7 +304,7 @@ public class XmlTest {
    */
   @SuppressWarnings("cast")
   @Test
-  public void testparseToAnyTypeAdditionalField() throws Exception {
+  public void testParseToAnyTypeAdditionalField() throws Exception {
     AnyTypeAdditionalField xml = new AnyTypeAdditionalField();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
