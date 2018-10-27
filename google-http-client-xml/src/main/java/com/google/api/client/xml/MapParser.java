@@ -85,15 +85,13 @@ public class MapParser extends Xml<Map<String,Object>> {
       destinationMap.put(fieldName, list);
     }
     list.add(mapValue);
-
-
   }
-
 
   @Override
-  public void mapArrayWithClassTypeSetValue(final Object fieldName, final Object value) {
-    setValue(fieldName, value);
+  public boolean mapArrayWithClassType(final ParserParameter parameter,
+                                       final Field field, final String fieldName,
+                                       final Type fieldType, final Class<?> fieldClass) {
+    throw new RuntimeException("No mapArrayWithClassType in  MapParser");
   }
-
 
 }

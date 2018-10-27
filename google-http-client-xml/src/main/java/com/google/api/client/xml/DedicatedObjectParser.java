@@ -1,13 +1,16 @@
 package com.google.api.client.xml;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.xmlpull.v1.XmlPullParserException;
 import com.google.api.client.util.ClassInfo;
 import com.google.api.client.util.FieldInfo;
+import com.google.api.client.util.Types;
 
 public class DedicatedObjectParser extends Xml<Field> {
 
@@ -100,8 +103,27 @@ public class DedicatedObjectParser extends Xml<Field> {
   }
 
   @Override
-  public void mapArrayWithClassTypeSetValue(final Object destination, final Object value){
-    setValue(destination, value);
+  public boolean mapArrayWithClassType(final ParserParameter parameter,
+                                                final Field field, final String fieldName,
+                                                final Type fieldType, final Class<?> fieldClass)
+      throws IOException, XmlPullParserException {
+    final boolean isStopped; // not an array/iterable or a map, but we do have a field
+    Object value = Types.newInstance(fieldClass);
+    int contextSize = parameter.context.size();
+    parameter.context.add(fieldType);
+    isStopped = Xml.parseElementInternal(new ParserParameter(parameter.parser,
+        parameter.context,
+        value, // destination; never null.
+        null,
+        parameter.namespaceDictionary,
+        parameter.customizeParser));
+    parameter.context.remove(contextSize);
+
+    // mapArrayWithClassTypeSetValue(parameter.destination, value);
+
+    setValue(parameter.destination, value);
+
+    return isStopped;
   }
 
 }

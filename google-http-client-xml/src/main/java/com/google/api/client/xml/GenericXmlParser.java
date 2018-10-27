@@ -1,5 +1,6 @@
 package com.google.api.client.xml;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 import com.google.api.client.util.ClassInfo;
 
 public class GenericXmlParser extends Xml<GenericXml> {
@@ -102,8 +104,11 @@ public class GenericXmlParser extends Xml<GenericXml> {
 
 
   @Override
-  public void mapArrayWithClassTypeSetValue(final Object fieldName, final Object value){
-    setValue(fieldName, value);
+  public boolean mapArrayWithClassType(final ParserParameter parameter,
+                                       final Field field, final String fieldName,
+                                       final Type fieldType, final Class<?> fieldClass)
+   {
+     throw new RuntimeException("No mapArrayWithClassType in  GenericXml");
   }
 
 }
