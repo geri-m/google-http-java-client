@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Key;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -163,12 +164,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SIMPLE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   public static class SimpleTypeNumericGeneric extends GenericXml {
@@ -188,12 +184,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SIMPLE_XML_NUMERIC));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
 
@@ -265,12 +256,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   /**
@@ -284,12 +270,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   /**
@@ -302,12 +283,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, new Xml.CustomizeParser());
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
 
@@ -333,12 +309,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_INT));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   public static class AnyTypePrimitiveStringGeneric extends GenericXml {
@@ -363,12 +334,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ANY_TYPE_XML_PRIMITIVE_STR));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e){
-      // good where
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   private static final String ALL_TYPE = "<?xml version=\"1.0\"?><any xmlns=\"\">"
@@ -385,11 +351,7 @@ public class GenericXmlTest{
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(ALL_TYPE));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary().set("","");
-    try{
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-    } catch (final Exception e){
-      fail();
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
   private static final String ANY_TYPE_XML_NESTED_ARRAY =
@@ -406,17 +368,12 @@ public class GenericXmlTest{
     failTestNestedArray(ANY_TYPE_XML_NESTED_ARRAY);
   }
 
-  private void failTestNestedArray(final String anyTypeXmlNestedArray) throws org.xmlpull.v1.XmlPullParserException {
+  private void failTestNestedArray(final String anyTypeXmlNestedArray) throws org.xmlpull.v1.XmlPullParserException, IOException {
     AnyTypeGeneric xml = new AnyTypeGeneric();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(anyTypeXmlNestedArray));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    try {
-      Xml.parseElement(parser, xml, namespaceDictionary, null);
-      fail();
-    } catch (final Exception e) {
-      // we are good here
-    }
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
   }
 
 

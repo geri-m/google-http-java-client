@@ -79,8 +79,6 @@ public class GenericXmlParser extends Xml<GenericXml> {
             ? "" : parameter.namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
         String fieldName = getFieldName(true, attributeAlias, attributeName);
         Field field = classInfo == null ? null : classInfo.getField(fieldName);
-        if(field != null)
-          throw new RuntimeException("parseAttributesFromElement (GenericXML) sanity check");
 
         parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
 

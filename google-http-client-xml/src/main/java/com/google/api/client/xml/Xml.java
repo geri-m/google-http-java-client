@@ -283,6 +283,7 @@ public abstract class Xml<T> {
           breakFromMain = true;
           break;
         case XmlPullParser.TEXT:
+          /*
           // parse text content
           if (parameter.destination != null) {
             if (classInfo == null) {
@@ -291,11 +292,31 @@ public abstract class Xml<T> {
               field =  classInfo.getField(TEXT_CONTENT);
               if (field != null) {
                 parameter.valueType = field.getGenericType();
-              }
-              if ((parser instanceof DedicatedObjectParser)) {
+                  if ((parser instanceof DedicatedObjectParser)) {
                 parser.setDestination(field);
               }
               parser.parseAttributeOrTextContent(parameter.parser.getText(), parameter.destination);
+              }
+
+            }
+          }
+          break;
+          */
+          if (parameter.destination != null) {
+            field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
+
+            parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
+
+            if (field != null) {
+              if ((parser instanceof DedicatedObjectParser)) {
+                parser.setDestination(field);
+                parser.parseAttributeOrTextContent(parameter.parser.getText(), parameter.destination);
+              } else {
+                parser.parseAttributeOrTextContent(parameter.parser.getText(), TEXT_CONTENT);
+              }
+
+            } else {
+              parser.parseAttributeOrTextContent(parameter.parser.getText(), TEXT_CONTENT);
             }
           }
           break;
