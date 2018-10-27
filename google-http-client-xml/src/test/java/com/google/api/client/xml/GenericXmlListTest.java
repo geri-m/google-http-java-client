@@ -35,11 +35,6 @@ public class GenericXmlListTest {
     public Collection<XmlTest.AnyType> rep;
   }
 
-  public static class ListWithClassTypeGeneric extends  GenericXml {
-    @Key
-    public List<XmlTest.AnyType> rep;
-  }
-
   public static class MultiGenericWithClassType  {
     @Key
     public GenericXml[] rep;
@@ -116,38 +111,6 @@ public class GenericXmlListTest {
     assertEquals(MULTI_TYPE_WITH_CLASS_TYPE, out.toString());
   }
 
-
-  @Test
-  public void testParseListWithClassType() throws Exception {
-    ListWithClassTypeGeneric xml = new ListWithClassTypeGeneric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTI_TYPE_WITH_CLASS_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertTrue(xml.rep instanceof List);
-    List<XmlTest.AnyType> rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(3, rep.size());
-    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep.get(0).elem;
-    assertEquals(1, elem0.size());
-    assertEquals("content1", elem0.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep.get(1).elem;
-    assertEquals(1, elem1.size());
-    assertEquals("content2", elem1.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep.get(2).elem;
-    assertEquals(1, elem2.size());
-    assertEquals("content3", elem2.get(0).get("text()"));
-
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTI_TYPE_WITH_CLASS_TYPE, out.toString());
-  }
-
-
   @Test
   public void testParseMultiGenericWithClassType() throws Exception {
     MultiGenericWithClassType xml = new MultiGenericWithClassType();
@@ -217,11 +180,6 @@ public class GenericXmlListTest {
     public String[] rep;
   }
 
-  public static class ListTypeStringGeneric extends GenericXml {
-    @Key
-    public List<String> rep;
-  }
-
   /**
    * The Purpose of this test is to map a given list of elements (Strings) to a {@link Collection}
    * of Strings. This test uses the {@link DedicatedObjectParser} only, as all field/types are
@@ -269,31 +227,6 @@ public class GenericXmlListTest {
     assertEquals(MULTIPLE_STRING_ELEMENT, out.toString());
   }
 
-  /**
-   * The Purpose of this test is to map a given list of elements (Strings) to a {@link List}
-   * of Strings. This test uses the {@link DedicatedObjectParser} only, as all field/types are
-   * specified.
-   */
-  @Test
-  public void testParseListTypeString() throws Exception {
-    ListTypeStringGeneric xml = new ListTypeStringGeneric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTIPLE_STRING_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals("rep1", xml.rep.get(0));
-    assertEquals("rep2", xml.rep.get(1));
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTIPLE_STRING_ELEMENT, out.toString());
-  }
-
-
   private static final String MULTIPLE_INTEGER_ELEMENT =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>1</rep><rep>2</rep></any>";
@@ -311,11 +244,6 @@ public class GenericXmlListTest {
   public static class ArrayTypeIntGeneric extends GenericXml {
     @Key
     public int[] rep;
-  }
-
-  public static class ListTypeIntegerGeneric extends GenericXml {
-    @Key
-    public List<Integer> rep;
   }
 
   /**
@@ -364,31 +292,6 @@ public class GenericXmlListTest {
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(MULTIPLE_INTEGER_ELEMENT, out.toString());
   }
-
-  /**
-   * The Purpose of this test is to map a given list of elements (Strings) to a {@link List}
-   * of Strings. This test uses the {@link DedicatedObjectParser} only, as all field/types are
-   * specified.
-   */
-  @Test
-  public void testParseListTypeInteger() throws Exception {
-    ListTypeIntegerGeneric xml = new ListTypeIntegerGeneric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTIPLE_INTEGER_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals(1, xml.rep.get(0).intValue());
-    assertEquals(2, xml.rep.get(1).intValue());
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTIPLE_INTEGER_ELEMENT, out.toString());
-  }
-
 
   /**
    * The Purpose of this test is to map a given list of elements (int) to a {@link List}
@@ -470,11 +373,6 @@ public class GenericXmlListTest {
     public XmlEnumTest.AnyEnum[] rep;
   }
 
-  public static class ListTypeEnumGeneric extends  GenericXml {
-    @Key
-    public List<XmlEnumTest.AnyEnum> rep;
-  }
-
 
   @Test
   public void testParseCollectionTypeWithEnum() throws Exception {
@@ -506,26 +404,6 @@ public class GenericXmlListTest {
     assertEquals(2, xml.rep.length);
     assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep[0]);
     assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep[1]);
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTIPLE_ENUM_ELEMENT, out.toString());
-  }
-
-
-  @Test
-  public void testParseListTypeWithEnum() throws Exception {
-    ListTypeEnumGeneric xml = new ListTypeEnumGeneric();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTIPLE_ENUM_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_1, xml.rep.get(0));
-    assertEquals(XmlEnumTest.AnyEnum.ENUM_2, xml.rep.get(1));
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();

@@ -34,10 +34,6 @@ public class XmlListTest {
     public Collection<XmlTest.AnyType> rep;
   }
 
-  public static class ListWithClassType {
-    @Key
-    public List<XmlTest.AnyType> rep;
-  }
 
   private static final String MULTI_TYPE_WITH_CLASS_TYPE =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">" +
@@ -105,37 +101,6 @@ public class XmlListTest {
     assertEquals(MULTI_TYPE_WITH_CLASS_TYPE, out.toString());
   }
 
-
-  @Test
-  public void testParseListWithClassType() throws Exception {
-    ListWithClassType xml = new ListWithClassType();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTI_TYPE_WITH_CLASS_TYPE));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertTrue(xml.rep instanceof List);
-    List<XmlTest.AnyType> rep = xml.rep;
-    assertNotNull(rep);
-    assertEquals(3, rep.size());
-    ArrayList<ArrayMap<String, String>> elem0 = (ArrayList<ArrayMap<String, String>>) rep.get(0).elem;
-    assertEquals(1, elem0.size());
-    assertEquals("content1", elem0.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem1 = (ArrayList<ArrayMap<String, String>>) rep.get(1).elem;
-    assertEquals(1, elem1.size());
-    assertEquals("content2", elem1.get(0).get("text()"));
-    ArrayList<ArrayMap<String, String>> elem2 = (ArrayList<ArrayMap<String, String>>) rep.get(2).elem;
-    assertEquals(1, elem2.size());
-    assertEquals("content3", elem2.get(0).get("text()"));
-
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTI_TYPE_WITH_CLASS_TYPE, out.toString());
-  }
-
   private static final String MULTIPLE_STRING_ELEMENT =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>rep1</rep><rep>rep2</rep></any>";
@@ -150,10 +115,6 @@ public class XmlListTest {
     public String[] rep;
   }
 
-  public static class ListTypeString {
-    @Key
-    public List<String> rep;
-  }
 
   /**
    * The Purpose of this test is to map a given list of elements (Strings) to a {@link Collection}
@@ -202,32 +163,6 @@ public class XmlListTest {
     assertEquals(MULTIPLE_STRING_ELEMENT, out.toString());
   }
 
-  /**
-   * The Purpose of this test is to map a given list of elements (Strings) to a {@link List}
-   * of Strings. This test uses the {@link DedicatedObjectParser} only, as all field/types are
-   * specified.
-   */
-  @Test
-  public void testParseListTypeString() throws Exception {
-    ListTypeString xml = new ListTypeString();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTIPLE_STRING_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals("rep1", xml.rep.get(0));
-    assertEquals("rep2", xml.rep.get(1));
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTIPLE_STRING_ELEMENT, out.toString());
-  }
-
-
-
   private static final String MULTIPLE_STRING_ELEMENT_IN_COLLECTION =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<coll><rep>rep1</rep><rep>rep2</rep></coll></any>";
@@ -254,7 +189,6 @@ public class XmlListTest {
     assertEquals(MULTIPLE_STRING_ELEMENT_IN_COLLECTION, out.toString());
   }
 
-
   private static final String MULTIPLE_INTEGER_ELEMENT =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>1</rep><rep>2</rep></any>";
@@ -272,11 +206,6 @@ public class XmlListTest {
   public static class ArrayTypeInt {
     @Key
     public int[] rep;
-  }
-
-  public static class ListTypeInteger {
-    @Key
-    public List<Integer> rep;
   }
 
   /**
@@ -325,31 +254,6 @@ public class XmlListTest {
     namespaceDictionary.serialize(serializer, "any", xml);
     assertEquals(MULTIPLE_INTEGER_ELEMENT, out.toString());
   }
-
-  /**
-   * The Purpose of this test is to map a given list of elements (Strings) to a {@link List}
-   * of Strings. This test uses the {@link DedicatedObjectParser} only, as all field/types are
-   * specified.
-   */
-  @Test
-  public void testParseListTypeInteger() throws Exception {
-    ListTypeInteger xml = new ListTypeInteger();
-    XmlPullParser parser = Xml.createParser();
-    parser.setInput(new StringReader(MULTIPLE_INTEGER_ELEMENT));
-    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
-    Xml.parseElement(parser, xml, namespaceDictionary, null);
-    // check type
-    assertEquals(2, xml.rep.size());
-    assertEquals(1, xml.rep.get(0).intValue());
-    assertEquals(2, xml.rep.get(1).intValue());
-    // serialize
-    XmlSerializer serializer = Xml.createSerializer();
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    serializer.setOutput(out, "UTF-8");
-    namespaceDictionary.serialize(serializer, "any", xml);
-    assertEquals(MULTIPLE_INTEGER_ELEMENT, out.toString());
-  }
-
 
   /**
    * The Purpose of this test is to map a given list of elements (int) to a {@link List}

@@ -55,6 +55,11 @@ public abstract class Xml<T> {
     this.classInfo = classInfo;
   }
 
+  protected Xml(final ParserParameter parameter) {
+    this.parameter = parameter;
+    this.classInfo = null;
+  }
+
   public abstract void parseAttributesFromElement();
 
   public abstract void parseAttributeOrTextContent(String stringValue, Object name);
@@ -248,9 +253,12 @@ public abstract class Xml<T> {
 
     final Xml parser;
     // if we have a dedicated destination
-    if (!(parameter.destination instanceof GenericXml) &&  parameter.destination instanceof Map<?, ?>) {
-      parser = new MapParser(parameter,   classInfo);
-    } else if (parameter.destination instanceof GenericXml) {
+    if (parameter.destination != null && !(parameter.destination instanceof GenericXml) &&  parameter.destination instanceof Map<?, ?>) {
+      if (classInfo != null) {
+        throw new  RuntimeException("We must not have a classInfo here");
+      }
+      parser = new MapParser(parameter);
+    } else if (parameter.destination != null && parameter.destination instanceof GenericXml) {
       // if we have a generic XML, set the namespace
       parser = new GenericXmlParser(parameter,  classInfo);
     } else {
@@ -389,7 +397,7 @@ public abstract class Xml<T> {
               }
 
               // field could be null here.
-              isStopped = mapAsClassOrObjectType(parameter, fieldName, fieldType, fieldClass, parser);
+              isStopped = parser.mapAsClassOrObjectType(parameter, fieldName, fieldType, fieldClass);
             } else if (isArray || Types.isAssignableToOrFrom(fieldClass, Collection.class)) {
               if (field == null) {
                 throw new RuntimeException("Field can not be null here. ");
@@ -453,11 +461,8 @@ public abstract class Xml<T> {
   }
 
   private static void sanityCheck(final Xml parser,  final Field field) {
-    if (field != null) {
-      if (!(parser instanceof DedicatedObjectParser)) {
+    if (field != null && !(parser instanceof DedicatedObjectParser)) {
         throw new RuntimeException("Incorrect Parser");
-      }
-
     }
   }
 
@@ -472,9 +477,9 @@ public abstract class Xml<T> {
     }
   }
 
-
-  private static boolean mapAsClassOrObjectType(final ParserParameter parameter, final String fieldName,
-                                                final Type fieldType, final Class<?> fieldClass, final Xml parserObj)
+  // done
+  private boolean mapAsClassOrObjectType(final ParserParameter parameter, final String fieldName,
+                                                final Type fieldType, final Class<?> fieldClass)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // store the element as a map
     Map<String, Object> mapValue = Data.newMapInstance(fieldClass);
@@ -482,6 +487,7 @@ public abstract class Xml<T> {
     if (fieldType != null) {
       parameter.context.add(fieldType);
     }
+
     Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
         ? Types.getMapValueParameter(fieldType) : null;
     subValueType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, subValueType);
@@ -495,8 +501,7 @@ public abstract class Xml<T> {
       parameter.context.remove(contextSize);
     }
 
-
-    parserObj.mapCollection(fieldClass, fieldName, mapValue);
+    mapCollection(fieldClass, fieldName, mapValue);
 
     // Handle as Array
     return isStopped;
@@ -569,6 +574,8 @@ public abstract class Xml<T> {
           customizeParser));
       context.remove(contextSize);
     }
+
+     // this is the switch between an Array an a Parameter Tye (Collection<>, List<>)
     if (isArray) {
       // array field: add new element to array value map
       if (field == null) {
@@ -578,37 +585,26 @@ public abstract class Xml<T> {
         arrayValueMap.put(field, rawArrayComponentType, elementValue);
       }
     } else {
+      @SuppressWarnings("unchecked")
+      Collection<Object> collectionValue = (Collection<Object>)fieldInfo.getValue(destination);
+      if (collectionValue == null) {
+        collectionValue = Data.newCollectionInstance(fieldType);
 
-      mapToCollection(destination,   field, fieldName, fieldType,
-          fieldInfo, elementValue, parserObj);
+        // super hacky for the moment.
+        if (field != null && parserObj instanceof DedicatedObjectParser) {
+          parserObj.setValue(destination, collectionValue);
+        } else if (parserObj instanceof GenericXmlParser) {
+          parserObj.setValue(fieldName, collectionValue);
+        } else {
+          throw new RuntimeException("We must not end up here");
+          // parser.setValue(fieldName, collectionValue);
+        }
+      }
+      collectionValue.add(elementValue);
     }
     return isStopped;
   }
-
-  private static void mapToCollection(final Object destination,
-                                      final Field field,
-                                      final String fieldName, final Type fieldType,
-                                      final FieldInfo fieldInfo, final Object elementValue, final Xml parser) {
-    // collection: add new element to collection  NOT YET Covered!
-    @SuppressWarnings("unchecked")
-    Collection<Object> collectionValue = (Collection<Object>)fieldInfo.getValue(destination);
-
-    if (collectionValue == null) {
-      collectionValue = Data.newCollectionInstance(fieldType);
-
-      // super hacky for the moment.
-      if (field != null && parser instanceof DedicatedObjectParser) {
-        parser.setValue(destination, collectionValue);
-      } else if (parser instanceof GenericXmlParser) {
-        parser.setValue(fieldName, collectionValue);
-      } else {
-        throw new RuntimeException("We must not end up here");
-        // parser.setValue(fieldName, collectionValue);
-      }
-    }
-    collectionValue.add(elementValue);
-  }
-
+  // -----------------------------------------------------------------
   // done.
   private boolean mapArrayWithClassType(final ParserParameter parameter,
                                                final Field field, final String fieldName,
@@ -637,7 +633,7 @@ public abstract class Xml<T> {
     return isStopped;
   }
 
-  // -----------------------------------------------------------------
+
 
   protected static String getFieldName(
       boolean isAttribute, String alias, String name) {

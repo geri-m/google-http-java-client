@@ -13,8 +13,8 @@ public class MapParser extends Xml<Map<String,Object>> {
   protected Map<String, Object> destinationMap;
 
   @SuppressWarnings("unchecked")
-  public MapParser(final ParserParameter parameter, final ClassInfo classInfo) {
-    super(parameter, classInfo);
+  public MapParser(final ParserParameter parameter) {
+    super(parameter);
     this.destinationMap = (Map) parameter.destination;
   }
 
