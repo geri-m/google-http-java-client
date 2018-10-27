@@ -70,9 +70,7 @@ public abstract class Xml<T> {
 
   public abstract void mapCollection(final Class<?> fieldClass, final String fieldName, final Map<String, Object> mapValue);
 
-  public abstract boolean mapArrayWithClassType(final ParserParameter parameter,
-                                        final Field field, final String fieldName,
-                                        final Type fieldType, final Class<?> fieldClass) throws IOException, XmlPullParserException;
+  public abstract boolean mapArrayWithClassType(final Type fieldType, final Class<?> fieldClass) throws IOException, XmlPullParserException;
 
   /**
    * {@code "application/xml; charset=utf-8"} media type used as a default for XML parsing.
@@ -197,8 +195,7 @@ public abstract class Xml<T> {
         customizeParser));
   }
 
-  public static class ParserParameter{
-
+  public static class ParserParameter {
     XmlPullParser parser;
     ArrayList<Type> context;
     Object destination;
@@ -211,9 +208,7 @@ public abstract class Xml<T> {
                            Object destination,
                            Type valueType,
                            XmlNamespaceDictionary namespaceDictionary,
-                           CustomizeParser customizeParser){
-
-
+                           CustomizeParser customizeParser) {
       this.parser = parser;
       this.context = context;
       this.destination = destination;
@@ -221,7 +216,6 @@ public abstract class Xml<T> {
       this.namespaceDictionary = namespaceDictionary;
       this.customizeParser = customizeParser;
     }
-
   }
 
   /**
@@ -230,9 +224,7 @@ public abstract class Xml<T> {
    * {@link #parseElement(XmlPullParser, Object, XmlNamespaceDictionary, CustomizeParser)}.
    *
    * @param parameter Parameter Object passsed to the Method
-   * @return
-   * @throws IOException
-   * @throws XmlPullParserException
+   * @return boolean if the parsing was stopped by the custom parser
    */
 
   protected static boolean parseElementInternal(final ParserParameter parameter)
@@ -293,14 +285,18 @@ public abstract class Xml<T> {
         case XmlPullParser.TEXT:
           // parse text content
           if (parameter.destination != null) {
-            field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
-
-            if ((parser instanceof DedicatedObjectParser)) {
-              parser.setDestination(field);
+            if (classInfo == null) {
+              parser.parseAttributeOrTextContent(parameter.parser.getText(), TEXT_CONTENT);
+            } else {
+              field =  classInfo.getField(TEXT_CONTENT);
+              if (field != null) {
+                parameter.valueType = field.getGenericType();
+              }
+              if ((parser instanceof DedicatedObjectParser)) {
+                parser.setDestination(field);
+              }
+              parser.parseAttributeOrTextContent(parameter.parser.getText(), parameter.destination);
             }
-            parser.sanityCheck(parser,  field);
-            parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-            parser.mapTextToElementValue(parameter, field, TEXT_CONTENT);
           }
           break;
         case XmlPullParser.START_TAG:
@@ -313,7 +309,7 @@ public abstract class Xml<T> {
           // not sure how the case looks like, when this happens.
           if (parameter.destination == null) {
             // we ignore the result, as we can't map it to anything. we parse for sanity
-            parseTextContentForElement(parameter.parser, parameter.context, true, null);
+            parser.parseTextContentForElement(parameter.parser, parameter.context, true, null);
           } else {
             // element
             parseNamespacesForElement(parameter.parser, parameter.namespaceDictionary);
@@ -324,14 +320,22 @@ public abstract class Xml<T> {
             String fieldName = getFieldName(false, alias,  parameter.parser.getName());
 
             // fetch the field from the classInfo
-            field = classInfo == null ? null : classInfo.getField(fieldName);
-
-            if ((parser instanceof DedicatedObjectParser)) {
-              parser.setDestination(field);
+            if (classInfo == null) {
+              field = null;
+            } else {
+              field = classInfo.getField(fieldName);
+              if ((parser instanceof DedicatedObjectParser)) {
+                parser.setDestination(field);
+              }
             }
 
-            Type fieldType = field == null ? parameter.valueType : field.getGenericType();
-            fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, fieldType);
+            final Type fieldType;
+            if(field == null) {
+              fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, parameter.valueType);
+            } else {
+              fieldType = Data.resolveWildcardTypeOrTypeVariable(parameter.context, field.getGenericType());
+            }
+
             // field type is now class, parameterized type, or generic array type
             // resolve a parameterized type to a class
             Class<?> fieldClass = fieldType instanceof Class<?> ? (Class<?>) fieldType : null;
@@ -365,12 +369,6 @@ public abstract class Xml<T> {
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
                       parameter.valueType = field == null ? parameter.valueType : field.getGenericType();
-                      parser.sanityCheck(parser, field);
-
-                      if (field == null) {
-                        throw new RuntimeException("Field can not be null here");
-                      }
-
                       parser.parseAttributeOrTextContent(parameter.parser.getText(),  parameter.destination);
                     }
                     break;
@@ -413,13 +411,8 @@ public abstract class Xml<T> {
                   parameter.customizeParser,  field, arrayValueMap,
                   fieldName, fieldType, isArray, parser);
             } else {
-
-              if (field == null) {
-                throw new RuntimeException("Field can not be null here. ");
-                // if field would be null, we have to pass the destination Map; not sure how such a case looks like yet
-              }
               // done.
-              isStopped = parser.mapArrayWithClassType(parameter, field, fieldName, fieldType,
+              isStopped = parser.mapArrayWithClassType(fieldType,
                   fieldClass);
             }
           }
@@ -451,22 +444,7 @@ public abstract class Xml<T> {
     return isStopped;
   }
 
-  private void sanityCheck(final Xml parser,  final Field field) {
-    if (field != null && !(parser instanceof DedicatedObjectParser)) {
-        throw new RuntimeException("Incorrect Parser");
-    }
-  }
 
-  private void mapTextToElementValue(final ParserParameter parameter, final Field field, final String textContent) {
-    if (field != null) {
-      if (!(this instanceof DedicatedObjectParser)) {
-        throw new RuntimeException("DedicatedObjectParser required");
-      }
-      parseAttributeOrTextContent(parameter.parser.getText(), parameter.destination);
-    } else {
-      parseAttributeOrTextContent(parameter.parser.getText(), textContent);
-    }
-  }
   private static boolean mapAsArrayOrCollection(final XmlPullParser parser,
                                                 final ArrayList<Type> context,
                                                 final Object destination,
@@ -498,7 +476,7 @@ public abstract class Xml<T> {
     // Array mit Primitive oder Enum Type
     if (Data.isPrimitive(subFieldType) || isSubEnum) {
       // can be null
-      elementValue = parseTextContentForElement(parser, context, false, subFieldType);
+      elementValue = parserObj.parseTextContentForElement(parser, context, false, subFieldType);
     } else if (subFieldType == null || subFieldClass != null
         && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
       // returns never null
@@ -609,7 +587,7 @@ public abstract class Xml<T> {
     return buf.append(name).toString();
   }
 
-  private static Object parseTextContentForElement(
+  private Object parseTextContentForElement(
       XmlPullParser parser, List<Type> context, boolean ignoreTextContent, Type textContentType)
       throws XmlPullParserException, IOException {
     Object result = null;

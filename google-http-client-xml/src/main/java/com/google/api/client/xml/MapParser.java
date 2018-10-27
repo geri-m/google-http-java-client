@@ -88,9 +88,7 @@ public class MapParser extends Xml<Map<String,Object>> {
   }
 
   @Override
-  public boolean mapArrayWithClassType(final ParserParameter parameter,
-                                       final Field field, final String fieldName,
-                                       final Type fieldType, final Class<?> fieldClass) {
+  public boolean mapArrayWithClassType(final Type fieldType, final Class<?> fieldClass) {
     throw new RuntimeException("No mapArrayWithClassType in  MapParser");
   }
 

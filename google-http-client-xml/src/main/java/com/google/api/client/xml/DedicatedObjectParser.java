@@ -103,9 +103,7 @@ public class DedicatedObjectParser extends Xml<Field> {
   }
 
   @Override
-  public boolean mapArrayWithClassType(final ParserParameter parameter,
-                                                final Field field, final String fieldName,
-                                                final Type fieldType, final Class<?> fieldClass)
+  public boolean mapArrayWithClassType(final Type fieldType, final Class<?> fieldClass)
       throws IOException, XmlPullParserException {
     final boolean isStopped; // not an array/iterable or a map, but we do have a field
     Object value = Types.newInstance(fieldClass);
@@ -118,11 +116,7 @@ public class DedicatedObjectParser extends Xml<Field> {
         parameter.namespaceDictionary,
         parameter.customizeParser));
     parameter.context.remove(contextSize);
-
-    // mapArrayWithClassTypeSetValue(parameter.destination, value);
-
     setValue(parameter.destination, value);
-
     return isStopped;
   }
 
