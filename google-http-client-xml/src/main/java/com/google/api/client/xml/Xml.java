@@ -315,7 +315,10 @@ public abstract class Xml<T> {
                 parser.parseAttributeOrTextContent(parameter.parser.getText(), TEXT_CONTENT);
               }
 
-            } else {
+            } else if (parser instanceof DedicatedObjectParser) {
+              // This is hot fix for the AtomTests
+            }
+            else {
               parser.parseAttributeOrTextContent(parameter.parser.getText(), TEXT_CONTENT);
             }
           }
