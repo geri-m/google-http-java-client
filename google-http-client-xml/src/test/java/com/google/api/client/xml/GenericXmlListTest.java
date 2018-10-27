@@ -414,6 +414,47 @@ public class GenericXmlListTest {
   }
 
 
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1</rep><rep>2</rep></any>";
+
+
+  @Test
+  public void testParse_arrayTypeWithPrimitive() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE));
+  }
+
+
+  private static final String ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED =
+      "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
+          + "<rep>1<nested>something</nested></rep><rep>2</rep></any>";
+
+  @Test
+  public void testParse_arrayTypeWithPrimitiveWithNestedElement() throws Exception {
+    assertEquals(ARRAY_TYPE_WITH_PRIMITIVE, testStandardXml(ARRAY_TYPE_WITH_PRIMITIVE_ADDED_NESTED));
+  }
+
+  private String testStandardXml(final String xmlString) throws Exception {
+    ArrayTypeIntGeneric xml = new ArrayTypeIntGeneric();
+    XmlPullParser parser = Xml.createParser();
+    parser.setInput(new StringReader(xmlString));
+    XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
+    Xml.parseElement(parser, xml, namespaceDictionary, null);
+    // check type
+    int[] rep = xml.rep;
+    assertNotNull(rep);
+    assertEquals(2, rep.length);
+    assertEquals(1, rep[0]);
+    assertEquals(2, rep[1]);
+    // serialize
+    XmlSerializer serializer = Xml.createSerializer();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    serializer.setOutput(out, "UTF-8");
+    namespaceDictionary.serialize(serializer, "any", xml);
+    return out.toString();
+  }
+
+
   private static final String MULTIPLE_ENUM_ELEMENT =
       "<?xml version=\"1.0\"?><any xmlns=\"http://www.w3.org/2005/Atom\">"
           + "<rep>ENUM_1</rep><rep>ENUM_2</rep></any>";
