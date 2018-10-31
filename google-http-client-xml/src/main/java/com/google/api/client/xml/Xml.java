@@ -234,14 +234,32 @@ public class Xml {
       CustomizeParser customizeParser) throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
     // better
-    GenericXml genericXml = destination instanceof GenericXml ? (GenericXml) destination : null;
+
+    // changed to explicit IF; make final to avoid change later
+    final GenericXml genericXml;
+    if (destination instanceof GenericXml) {
+      genericXml = (GenericXml) destination;
+    } else {
+      genericXml = null;
+    }
+
+    // changed to explicit IF; make final to avoid change later
     @SuppressWarnings("unchecked")
-    Map<String, Object> destinationMap =
-        genericXml == null && destination instanceof Map<?, ?> ? Map.class.cast(destination) : null;
+    final Map<String, Object> destinationMap;
+    if ((genericXml == null) && (destination instanceof Map<?, ?>)) {
+      destinationMap =  Map.class.cast(destination);
+    } else {
+      destinationMap = null;
+    }
 
     // if there is a class, we want to put the data into, create the class Info for this
-    ClassInfo classInfo =
-        destinationMap != null || destination == null ? null : ClassInfo.of(destination.getClass());
+    final ClassInfo classInfo;
+    if ((destinationMap != null) || (destination == null)) {
+      classInfo = null;
+    } else {
+      classInfo = ClassInfo.of(destination.getClass());
+    }
+
     if (parser.getEventType() == XmlPullParser.START_DOCUMENT) {
       parser.next();
     }
@@ -252,7 +270,14 @@ public class Xml {
       String name = parser.getName();
       String namespace = parser.getNamespace();
       String alias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(namespace);
-      genericXml.name = alias.length() == 0 ? name : alias + ":" + name;
+
+      // explicit IF
+      if (alias.isEmpty()) {
+        genericXml.name = name;
+      } else {
+        genericXml.name = alias + ":" + name;
+      }
+
     }
     // attributes
     if (destination != null) {
@@ -261,10 +286,23 @@ public class Xml {
         // TODO(yanivi): can have repeating attribute values, e.g. "@a=value1 @a=value2"?
         String attributeName = parser.getAttributeName(i);
         String attributeNamespace = parser.getAttributeNamespace(i);
-        String attributeAlias = attributeNamespace.length() == 0
-            ? "" : namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+
+        String attributeAlias;
+        if (attributeNamespace.isEmpty()) {
+          attributeAlias = "";
+        } else {
+          attributeAlias = namespaceDictionary.getNamespaceAliasForUriErrorOnUnknown(attributeNamespace);
+        }
+
         String fieldName = getFieldName(true, attributeAlias, attributeNamespace, attributeName);
-        Field field = classInfo == null ? null : classInfo.getField(fieldName);
+
+        final Field field;
+        if (classInfo == null) {
+          field = null;
+        } else {
+          field = classInfo.getField(fieldName);
+        }
+
         parseAttributeOrTextContent(parser.getAttributeValue(i),
             field,
             valueType,
@@ -292,7 +330,12 @@ public class Xml {
         case XmlPullParser.TEXT:
           // parse text content
           if (destination != null) {
-            field = classInfo == null ? null : classInfo.getField(TEXT_CONTENT);
+            if (classInfo == null) {
+              field = null;
+            } else {
+              field = classInfo.getField(TEXT_CONTENT);
+            }
+
             parseAttributeOrTextContent(parser.getText(),
                 field,
                 valueType,
@@ -321,12 +364,29 @@ public class Xml {
             String fieldName = getFieldName(false, alias, namespace, parser.getName());
 
             // fetch the field from the classInfo
-            field = classInfo == null ? null : classInfo.getField(fieldName);
-            Type fieldType = field == null ? valueType : field.getGenericType();
+            if (classInfo == null) {
+              field = null;
+            } else {
+              field = classInfo.getField(fieldName);
+            }
+
+            Type fieldType;
+            if (field == null) {
+              fieldType = valueType;
+            } else {
+              fieldType = field.getGenericType();
+            }
+
             fieldType = Data.resolveWildcardTypeOrTypeVariable(context, fieldType);
             // field type is now class, parameterized type, or generic array type
             // resolve a parameterized type to a class
-            Class<?> fieldClass = fieldType instanceof Class<?> ? (Class<?>) fieldType : null;
+            Class<?> fieldClass;
+            if (fieldType instanceof Class<?>) {
+              fieldClass = (Class<?>) fieldType;
+            } else {
+              fieldClass = null;
+            }
+
             if (fieldType instanceof ParameterizedType) {
               fieldClass = Types.getRawClass((ParameterizedType) fieldType);
             }
@@ -372,8 +432,13 @@ public class Xml {
               if (fieldType != null) {
                 context.add(fieldType);
               }
-              Type subValueType = fieldType != null && Map.class.isAssignableFrom(fieldClass)
-                  ? Types.getMapValueParameter(fieldType) : null;
+              Type subValueType;
+              if (fieldType != null && Map.class.isAssignableFrom(fieldClass)) {
+                subValueType = Types.getMapValueParameter(fieldType);
+              } else {
+                subValueType = null;
+              }
+
               subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
               isStopped = parseElementInternal(parser,
                   context,
@@ -424,29 +489,43 @@ public class Xml {
               // TODO(yanivi): some duplicate code here; isolate into reusable methods
               FieldInfo fieldInfo = FieldInfo.of(field);
               Object elementValue = null;
-              Type subFieldType = isArray
-                  ? Types.getArrayComponentType(fieldType) : Types.getIterableParameter(fieldType);
+              Type subFieldType;
+              if (isArray) {
+                subFieldType = Types.getArrayComponentType(fieldType);
+              } else {
+                subFieldType = Types.getIterableParameter(fieldType);
+              }
+
               Class<?> rawArrayComponentType =
                   Types.getRawArrayComponentType(context, subFieldType);
               subFieldType = Data.resolveWildcardTypeOrTypeVariable(context, subFieldType);
-              Class<?> subFieldClass =
-                  subFieldType instanceof Class<?> ? (Class<?>) subFieldType : null;
+
+              Class<?> subFieldClass;
+              if (subFieldType instanceof Class<?>) {
+                subFieldClass = (Class<?>) subFieldType;
+              } else {
+                subFieldClass = null;
+              }
               if (subFieldType instanceof ParameterizedType) {
                 subFieldClass = Types.getRawClass((ParameterizedType) subFieldType);
               }
-              boolean isSubEnum = subFieldClass != null && subFieldClass.isEnum();
+              boolean isSubEnum = (subFieldClass != null) && subFieldClass.isEnum();
               if (Data.isPrimitive(subFieldType) || isSubEnum) {
                 elementValue = parseTextContentForElement(parser, context, false, subFieldType);
-              } else if (subFieldType == null || subFieldClass != null
-                  && Types.isAssignableToOrFrom(subFieldClass, Map.class)) {
+              } else if ((subFieldType == null) || ((subFieldClass != null) &&
+                  Types.isAssignableToOrFrom(subFieldClass, Map.class))) {
                 elementValue = Data.newMapInstance(subFieldClass);
                 int contextSize = context.size();
                 if (subFieldType != null) {
                   context.add(subFieldType);
                 }
-                Type subValueType = subFieldType != null
-                    && Map.class.isAssignableFrom(subFieldClass) ? Types.getMapValueParameter(
-                    subFieldType) : null;
+
+                Type subValueType;
+                if ((subFieldType != null) && Map.class.isAssignableFrom(subFieldClass)){
+                  subValueType = Types.getMapValueParameter(subFieldType);
+                } else {
+                  subValueType = null;
+                }
                 subValueType = Data.resolveWildcardTypeOrTypeVariable(context, subValueType);
                 isStopped = parseElementInternal(parser,
                     context,
@@ -479,8 +558,13 @@ public class Xml {
               } else {
                 // collection: add new element to collection
                 @SuppressWarnings("unchecked")
-                Collection<Object> collectionValue = (Collection<Object>) (field == null
-                    ? destinationMap.get(fieldName) : fieldInfo.getValue(destination));
+                Collection<Object> collectionValue;
+                if (field == null) {
+                  collectionValue = (Collection<Object>) destinationMap.get(fieldName);
+                } else {
+                  collectionValue = (Collection<Object>) fieldInfo.getValue(destination);
+                }
+
                 if (collectionValue == null) {
                   collectionValue = Data.newCollectionInstance(fieldType);
                   setValue(collectionValue,
@@ -602,7 +686,13 @@ public class Xml {
       // if namespace isn't already in our dictionary, add it now
       if (namespaceDictionary.getAliasForUri(namespace) == null) {
         String prefix = parser.getNamespacePrefix(i);
-        String originalAlias = prefix == null ? "" : prefix;
+        String originalAlias;
+        if (prefix == null) {
+          originalAlias = "";
+        } else {
+          originalAlias = prefix;
+        }
+
         // find an available alias
         String alias = originalAlias;
         int suffix = 1;
