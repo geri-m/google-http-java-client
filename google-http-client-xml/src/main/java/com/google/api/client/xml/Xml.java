@@ -229,7 +229,7 @@ public class Xml {
   private static boolean parseElementInternal(XmlPullParser parser,
       ArrayList<Type> context,
       Object destination,
-      Type valueType,
+      Type valueType, // will be set fo elements of collections/arrays
       XmlNamespaceDictionary namespaceDictionary,
       CustomizeParser customizeParser) throws IOException, XmlPullParserException {
     // TODO(yanivi): method is too long; needs to be broken down into smaller methods and comment
@@ -258,7 +258,7 @@ public class Xml {
         destinationMap = null;
         initGenericXmlWithNamespace(parser, namespaceDictionary, genericXml);
       } // if the Destination is a Map generate a destination Map
-        else if (destination instanceof Map<?, ?>){
+        else if (destination instanceof Map<?, ?>) {
         genericXml = null;
         destinationMap =  Map.class.cast(destination);
       } // if the Destination is neither a Map nor a generic XML, we have a standard Object
@@ -288,12 +288,20 @@ public class Xml {
         case XmlPullParser.TEXT:
           // parse text content
           if (destination != null) {
+            // if destination is not null, we definitely have a classInfo
+
+            /*
             if (classInfo == null) {
               field = null;
             } else {
-              field = classInfo.getField(TEXT_CONTENT);
+              field = classInfo.getField(fieldName);
             }
+            */
 
+            Preconditions.checkNotNull(classInfo);
+            field = classInfo.getField(TEXT_CONTENT);
+
+            // we have text content and we have a field to map this content
             parseAttributeOrTextContent(parser.getText(),
                 field,
                 valueType,
@@ -321,33 +329,45 @@ public class Xml {
             //  get the "real" field name of the
             String fieldName = getFieldName(false, alias, namespace, parser.getName());
 
-            // fetch the field from the classInfo
+
+            // if destination is not null, we definitely have a classInfo
+
+            /*
             if (classInfo == null) {
               field = null;
             } else {
               field = classInfo.getField(fieldName);
             }
+            */
+
+            // fetch the field from the classInfo
+            Preconditions.checkNotNull(classInfo);
+            field = classInfo.getField(fieldName);
 
             Type fieldType;
+            // if the field is not in the destination ...
             if (field == null) {
+              // ... set the value type to a given value type, if this is a field in a collection/array
               fieldType = valueType;
             } else {
+              // ... or if the field was found in the destination/ClassInfo set the generic Datatype
               fieldType = field.getGenericType();
             }
 
             fieldType = Data.resolveWildcardTypeOrTypeVariable(context, fieldType);
+
             // field type is now class, parameterized type, or generic array type
             // resolve a parameterized type to a class
             Class<?> fieldClass;
             if (fieldType instanceof Class<?>) {
               fieldClass = (Class<?>) fieldType;
+            } else if (fieldType instanceof ParameterizedType) {
+              fieldClass = Types.getRawClass((ParameterizedType) fieldType);
             } else {
+              // if fieldtype is null or fieldtype is an array
               fieldClass = null;
             }
 
-            if (fieldType instanceof ParameterizedType) {
-              fieldClass = Types.getRawClass((ParameterizedType) fieldType);
-            }
             boolean isArray = Types.isArray(fieldType);
             // text content
             boolean ignore = field == null && destinationMap == null && genericXml == null;
@@ -368,6 +388,7 @@ public class Xml {
                     break;
                   case XmlPullParser.TEXT:
                     if (!ignore && level == 1) {
+                      // handle primitive types, that are not @Key("text()") annotated
                       parseAttributeOrTextContent(parser.getText(),
                           field,
                           valueType,
@@ -579,7 +600,7 @@ public class Xml {
 
       final Field field;
 
-      // if destination is not null, we defintiy have a classInfo
+      // if destination is not null, we definitely have a classInfo
 
       /*
       if (classInfo == null) {
