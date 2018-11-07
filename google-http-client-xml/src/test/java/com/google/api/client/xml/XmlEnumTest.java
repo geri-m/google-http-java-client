@@ -15,6 +15,7 @@
 package com.google.api.client.xml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +47,7 @@ public class XmlEnumTest {
       "xmlns=\"http://www.w3.org/2005/Atom\"><elementEnum>ENUM_2<nested>something</nested" +
       "></elementEnum></any>";
 
-  @SuppressWarnings("cast")
+
   @Test
   public void testParseAnyType() throws Exception {
     AnyType xml = new AnyType();
@@ -57,10 +58,10 @@ public class XmlEnumTest {
     assertTrue(xml.attr instanceof String);
     assertTrue(xml.elem.toString(), xml.elem instanceof ArrayList<?>);
     assertTrue(xml.rep.toString(), xml.rep instanceof ArrayList<?>);
-    assertTrue(xml.value instanceof ValueType);
-    assertTrue(xml.value.content instanceof XmlEnumTest.AnyEnum);
-    assertTrue(xml.anyEnum instanceof XmlEnumTest.AnyEnum);
-    assertTrue(xml.anotherEnum instanceof XmlEnumTest.AnyEnum);
+    assertNotNull(xml.value);
+    assertNotNull(xml.value.content);
+    assertNotNull(xml.anyEnum);
+    assertNotNull(xml.anotherEnum);
     assertEquals(xml.anyEnum, AnyEnum.ENUM_1);
     assertEquals(xml.anotherEnum, AnyEnum.ENUM_2);
     assertEquals(xml.value.content, AnyEnum.ENUM_1);
@@ -102,8 +103,8 @@ public class XmlEnumTest {
     parser.setInput(new StringReader(xmlString));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
-    assertTrue(xml.elementEnum instanceof XmlEnumTest.AnyEnum);
-    assertTrue(xml.elementEnum.equals(AnyEnum.ENUM_2));
+    assertNotNull(xml.elementEnum);
+    assertEquals(xml.elementEnum, AnyEnum.ENUM_2);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -123,8 +124,8 @@ public class XmlEnumTest {
     parser.setInput(new StringReader(XML_ENUM_ATTRIBUTE_ONLY));
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
-    assertTrue(xml.attributeEnum instanceof XmlEnumTest.AnyEnum);
-    assertTrue(xml.attributeEnum.equals(AnyEnum.ENUM_1));
+    assertNotNull(xml.attributeEnum);
+    assertEquals(xml.attributeEnum, AnyEnum.ENUM_1);
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
     ByteArrayOutputStream out = new ByteArrayOutputStream();

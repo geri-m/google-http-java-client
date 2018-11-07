@@ -17,12 +17,8 @@ package com.google.api.client.xml;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.List;
@@ -61,7 +57,6 @@ public class AtomTest {
   /**
    * Test for checking the Slug Header
    */
-  @SuppressWarnings("unchecked")
   @Test
   public void testSetSlugHeader() {
     HttpHeaders headers = new HttpHeaders();
@@ -85,16 +80,15 @@ public class AtomTest {
   }
 
   /**
-   * This tests parses a simple Atom Feed given as a constant. All elements are evaluated, to see if
+   * This tests parses a simple Atom Feed given as a constant. All elements are asserted, to see if
    * everything works fine. For parsing a dedicated {@link AtomFeedParser} is used.
    *
    * The purpose of this test is to test the {@link AtomFeedParser#parseFeed} and {@link
    * AtomFeedParser#parseNextEntry} and see if the mapping of the XML element to the entity classes
    * is done correctly.
    */
-  @SuppressWarnings("unchecked")
   @Test
-  public void testAtomFeedParser() throws Exception {
+  public void testAtomFeedUsingCustomizedParser() throws Exception {
     XmlPullParser parser = Xml.createParser();
     // Wired. Both, the InputStream for the FeedParser and the XPP need to be set (?)
     parser.setInput(new StringReader(SAMPLE_FEED));
@@ -132,15 +126,14 @@ public class AtomTest {
   }
 
   /**
-   * Manuel tests of a constant string to see if the data structure can be parsed in the regular way
-   * and get the same result.
+   * Tests of a constant string to see if the data structure can be parsed using the standard
+   * method {@link Xml#parseElement}
    *
-   * The purpose of this test is to evaluate, if the parsed elements are the same with the {@link
-   * AtomFeedParser}.
+   * The purpose of this test is to assert, if the parsed elements are correctly parsed using a
+   * {@link AtomFeedParser}.
    */
-  @SuppressWarnings("unchecked")
   @Test
-  public void testAtomFeedParserRegualar() throws Exception {
+  public void testAtomFeedUsingStandardParser() throws Exception {
     Feed feed = new Feed();
     XmlPullParser parser = Xml.createParser();
     parser.setInput(new StringReader(SAMPLE_FEED));
@@ -172,14 +165,13 @@ public class AtomTest {
   }
 
   /**
-   * Reading an XML ATOM Feed from a file and valid if all the {@link FeedEntry} are present. No
-   * detailed evaluation of each element
+   * Read an XML ATOM Feed from a file to a string and assert if all the {@link FeedEntry}s are
+   * present. No detailed assertion of each element
    *
    * The purpose of this test is to read a bunch of elements which contain additional elements
    * (HTML in this case), that are not part of the {@link FeedEntry} and to see if there is an issue
    * if we parse some more entries.
    */
-  @SuppressWarnings("unchecked")
   @Test
   public void testSampleFeedParser() throws Exception {
     XmlPullParser parser = Xml.createParser();

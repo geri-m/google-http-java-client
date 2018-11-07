@@ -57,6 +57,7 @@ public class XmlListTest {
   /**
    * The purpose of this test is to map an XML with an Array of {@link XmlTest.AnyType} objects.
    */
+  @SuppressWarnings("unchecked")
   @Test
   public void testParseArrayTypeWithClassType() throws Exception {
     ArrayWithClassType xml = new ArrayWithClassType();
@@ -65,7 +66,7 @@ public class XmlListTest {
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
-    assertTrue(xml.rep instanceof XmlTest.AnyType[]);
+    assertNotNull(xml.rep);
     XmlTest.AnyType[] rep = xml.rep;
     assertNotNull(rep);
     assertEquals(3, rep.length);
@@ -102,11 +103,10 @@ public class XmlListTest {
     XmlNamespaceDictionary namespaceDictionary = new XmlNamespaceDictionary();
     Xml.parseElement(parser, xml, namespaceDictionary, null);
     // check type
-    assertTrue(xml.rep instanceof Collection);
+    assertNotNull(xml.rep);
     Collection<XmlTest.AnyType> rep = xml.rep;
     assertNotNull(rep);
     assertEquals(3, rep.size());
-
 
     // serialize
     XmlSerializer serializer = Xml.createSerializer();
